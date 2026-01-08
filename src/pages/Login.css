@@ -1,0 +1,148 @@
+/* Login.css - Glassmorphism Theme */
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Matching Dashboard Mesh Gradient */
+  background: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+              radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+              radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+  background-attachment: fixed;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  overflow: hidden;
+}
+
+.login-card {
+  /* Glass Effect */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  padding: 50px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+  color: white;
+}
+
+.login-card h2 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 2.2rem;
+  margin-bottom: 5px;
+  background: linear-gradient(to bottom, #ffffff 30%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.login-card p {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 40px;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.input-group {
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  color: white;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-group input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.login-button {
+  width: 100%;
+  padding: 16px;
+  margin-top: 10px;
+  background: white;
+  color: #0f172a; /* Dark text for contrast */
+  border: none;
+  border-radius: 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  background: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+/* Logo Container Styles */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.animated-logo {
+  width: 100px; /* Adjust size as needed */
+  height: auto;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Keyframes for Floating Animation */
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(2deg); /* Moves up and tilts slightly */
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+/* Enhancing the Card Title to match the Logo Glow */

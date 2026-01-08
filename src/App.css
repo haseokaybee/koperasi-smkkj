@@ -1,0 +1,62 @@
+/* Remove the 1280px limit to let the dashboard use the whole screen */
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Ensure the body doesn't have default margins that cause white borders */
+body {
+  margin: 0;
+  padding: 0;
+  display: block; /* Overrides Vite's default flex centering */
+}
+
+/* Make images responsive */
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+
+/* --- Responsive Table Container --- */
+/* This prevents the table from breaking the layout on small screens */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Media Queries for Layout --- */
+
+/* Mobile Screens */
+@media (max-width: 768px) {
+  #root {
+    padding: 0;
+  }
+  
+  /* Make padding smaller on mobile so we don't waste space */
+  .dashboard-content {
+    padding: 10px;
+  }
+}
+
+/* Tablet & PC Screens */
+@media (min-width: 769px) {
+  #root {
+    text-align: left; /* Dashboards usually look better left-aligned on PC */
+  }
+}
+
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
