@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import { supabase } from '../supabaseClient'
 import './Dashboard.css';
+import CounterMoney from './CounterMoney'; // Add this near your other imports
+
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -51,7 +53,11 @@ export default function Dashboard() {
       if (sError) throw sError
       setStudents(studentData || [])
 
-      const { data: classData, error: cError } = await supabase.from('classes').select('*').order('name', { ascending: true })
+      const { data: classData, error: cError } = await supabase
+        .from('classes')
+        .select('*')
+        .order('name', { ascending: true })
+
       if (cError) throw cError
       setClasses(classData || [])
     } catch (error) {
@@ -149,6 +155,20 @@ export default function Dashboard() {
     })
   }, [students, filterGender, filterClass, searchQuery])
 
+  // --- PAGINATION LOGIC ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10; // Change this number to show more or fewer rows
+
+  // Reset to page 1 whenever search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterGender, filterClass]);
+
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = filteredStudents.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(filteredStudents.length / rowsPerPage);
+
   // --- DYNAMIC PIE CHART & STATS (Uses Filtered Data) ---
   const totalFiltered = filteredStudents.length
   const maleCount = filteredStudents.filter(s => s.gender?.toLowerCase() === 'lelaki').length
@@ -176,7 +196,7 @@ export default function Dashboard() {
           <div className="stat-card centered-card">
             <p>Ringkasan Keahlian (Filtered)</p>
             <div className="total-main">
-              <h3>{totalFiltered}</h3>
+              <h4><CounterMoney value={totalFiltered} prefix="" /></h4>
               <span>Jumlah Pelajar</span>
             </div>
             <div className="chart-container-centered">
@@ -211,9 +231,9 @@ export default function Dashboard() {
           <div className="stat-card centered-card">
             <p>Jumlah Syer Saham</p>
             <div className="total-main">
-              <h3 style={{ color: 'var(--success)' }}>
-                RM {totalSavings.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
+             <h3 style={{ color: 'var(--success)'  }}>
+  <CounterMoney value={totalSavings} />
+</h3>
               <span>Terkumpul</span>
             </div>
             <div style={{ marginTop: '20px', opacity: 0.5, fontSize: '0.8rem' }}>
@@ -239,7 +259,13 @@ export default function Dashboard() {
           <div className="card">
             <h4>Tapisan & Carian</h4>
             <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
-              <input className="search-input" style={{flex: '2'}} placeholder="Cari Nama / IC / No. Ahli..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <input
+                className="search-input"
+                style={{flex: '2'}}
+                placeholder="Cari Nama / IC / No. Ahli..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
               
               <select className="filter-select" style={{flex: '1'}} value={filterGender} onChange={(e) => setFilterGender(e.target.value)}>
                 <option value="All">Semua Jantina</option>
@@ -262,49 +288,78 @@ export default function Dashboard() {
                <p style={{marginTop: '10px', opacity: 0.5}}>Memuatkan data...</p>
             </div>
           ) : (
-            <div className="table-container">
-              <table className="modern-table">
-                <thead>
-                  <tr>
-                    <th>NAMA</th>
-                    <th>IC / AHLI</th>
-                    <th>JANTINA</th>
-                    <th>KELAS</th>
-                    <th>SIMPANAN (RM)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map(student => (
-                      <tr key={student.id}>
-                        <td style={{fontWeight: '600'}}>{student.name}</td>
-                        <td>
-                          <div style={{display: 'flex', flexDirection: 'column'}}>
-                            <span>{student.ic_number || 'N/A'}</span>
-                            <small style={{opacity: 0.5, fontSize: '0.7rem'}}>AHLI: {student.member_number}</small>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`badge ${student.gender?.toLowerCase() === 'lelaki' ? 'badge-blue' : 'badge-pink'}`}>
-                            {student.gender}
-                          </span>
-                        </td>
-                        <td>{getClassName(student.class_id)}</td>
-                        <td style={{ fontWeight: '700', color: 'var(--success)' }}>
-                          {Number(student.savings || 0).toFixed(2)}
+            <>
+              <div className="table-container">
+                <table className="modern-table">
+                  <thead>
+                    <tr>
+                      <th>NAMA</th>
+                      <th>IC / AHLI</th>
+                      <th>JANTINA</th>
+                      <th>KELAS</th>
+                      <th>SIMPANAN (RM)</th>
+                    </tr>
+                  </thead>
+
+                  {/* ✅ UPDATED TBODY to use currentRows */}
+                  <tbody>
+                    {currentRows.length > 0 ? (
+                      currentRows.map(student => (
+                        <tr key={student.id}>
+                          <td style={{fontWeight: '600'}}>{student.name}</td>
+                          <td>
+                            <div style={{display: 'flex', flexDirection: 'column'}}>
+                              <span>{student.ic_number || 'N/A'}</span>
+                              <small style={{opacity: 0.5, fontSize: '0.7rem'}}>AHLI: {student.member_number}</small>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`badge ${student.gender?.toLowerCase() === 'lelaki' ? 'badge-blue' : 'badge-pink'}`}>
+                              {student.gender}
+                            </span>
+                          </td>
+                          <td>{getClassName(student.class_id)}</td>
+                          <td style={{ fontWeight: '700', color: 'var(--success)' }}>
+                            {Number(student.savings || 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '60px', opacity: 0.5 }}>
+                          Tiada data pelajar dijumpai.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '60px', opacity: 0.5 }}>
-                        Tiada data pelajar dijumpai.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ✅ PAGINATION CONTROLS */}
+              {filteredStudents.length > rowsPerPage && (
+                <div className="pagination-controls">
+                  <button 
+                    className="page-btn" 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  
+                  <span className="page-info">
+                    Muka Surat <strong>{currentPage}</strong> daripada <strong>{totalPages}</strong>
+                  </span>
+
+                  <button 
+                    className="page-btn" 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -364,14 +419,12 @@ export default function Dashboard() {
       )}
 
       <div className="dashboard-container">
-      {/* ... Semua konten Navbar, Stats, Action Grid, dan Table Card ada di sini ... */}
+        {/* ... Semua konten Navbar, Stats, Action Grid, dan Table Card ada di sini ... */}
 
-      {/* TAMBAHKAN FOOTER DI SINI (Sebelum penutup dashboard-container) */}
-      <footer className="dashboard-footer">
-        <p>Hak Cipta Terpelihara &copy; 2026 Koperasi SMK Khir Johari</p>
-      </footer>
-
-    </div>
+        <footer className="dashboard-footer">
+          <p>Hak Cipta Terpelihara &copy; 2026 Koperasi SMK Khir Johari</p>
+        </footer>
+      </div>
     </div>
   )
 }

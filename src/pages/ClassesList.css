@@ -105,3 +105,43 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Initial state of the hint */
+.click-hint {
+  font-size: 0.75rem;          /* Smaller text size */
+  color: rgba(255, 255, 255, 0.5); /* Faded color (greyish) */
+  margin-top: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;   /* Makes the hover effect smooth */
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Update this in ClassesList.css */
+
+/* 1. Make sure the hint is faded initially */
+.click-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4); /* Faded white */
+  margin-top: 10px;
+  display: block;
+  transition: all 0.3s ease-in-out;
+}
+
+/* 2. Target the card hover more strongly */
+/* If your class card is called 'class-card', change .card to .class-card below */
+.card:hover .click-hint,
+.class-card:hover .click-hint {
+  color: #3b82f6 !important; /* Force a bright Blue color to test */
+  transform: translateX(8px); /* Move it more so it's obvious */
+  opacity: 1;
+}
+
+/* 3. Animate the arrow specifically */
+.card:hover .arrow-move,
+.class-card:hover .arrow-move {
+  margin-left: 8px;
+  display: inline-block;
+  transition: margin 0.3s ease;
+}

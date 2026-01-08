@@ -103,7 +103,9 @@ export default function ClassesList() {
                       </span>
                     </div>
                   </div>
-                  <div className="click-hint">Klik untuk lihat senarai →</div>
+                  <div className="click-hint">
+  Klik untuk lihat senarai <span className="arrow-move">→</span>
+</div>
                 </div>
               )
             })}

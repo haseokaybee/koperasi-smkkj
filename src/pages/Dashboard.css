@@ -133,19 +133,19 @@
   font-weight: 600;
 }
 
-.total-main h3 {
+.total-main h4 {
   font-family: var(--font-heading);
-  font-size: 3.2rem;
+  font-size: 4.5rem;
   line-height: 1;
   margin: 0;
-  font-weight: 800;
+  font-weight: 1500;
 }
 
 .total-main span {
-  font-size: 0.8rem;
-  opacity: 0.6;
+font-size: 1rem;
   text-transform: uppercase;
-  font-weight: 500;
+  letter-spacing: 1px;
+  opacity: 0.7;
 }
 
 /* --- MODERN PIE CHART --- */
@@ -428,3 +428,47 @@
   letter-spacing: 0.5px;
 }
 
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.page-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--blue-accent);
+  border-color: var(--blue-accent);
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Add this to Dashboard.css */
+.total-main h3 .animated-money {
+  font-size: 4.5rem; /* Extra Large */
+  font-weight: 800;
+  color: #22c55e;    /* Success Green */
+  display: block;    /* Makes it sit on its own line for better centering */
+  margin-bottom: 5px;
+  font-family: var(--font-heading);
+}
