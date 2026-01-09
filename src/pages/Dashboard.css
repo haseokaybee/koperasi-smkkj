@@ -135,9 +135,24 @@
 }
 
 @media (max-width: 768px) {
-  .content-wrapper { padding: 20px; }
-}
+  .content-wrapper {
+    padding: 16px;
+  }
 
+  .stats-grid,
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-card {
+    padding: 16px;
+  }
+
+  .table-container {
+    margin: 0 -8px;     /* let scroll area breathe */
+    padding: 0 8px;
+  }
+}
 /* ---------------------------
    NAVBAR
 ---------------------------- */
@@ -313,7 +328,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 22px;
   margin-bottom: 28px;
 }
@@ -699,5 +714,130 @@
   .logout-btn,
   .page-btn {
     transition: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 16px;          /* slightly smaller padding */
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Force single column and allow grid items to shrink */
+  .stats-grid,
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Critical: allow items in flex/grid to shrink instead of overflow */
+  .card,
+  .stat-card,
+  .table-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  /* Extra safety for grid overflow issues */
+  .stats-grid > *,
+  .action-grid > * {
+    min-width: 0;
+  }
+}
+
+.desktop-only { display: flex; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: inline-flex; }
+}
+
+/* Full-screen click-outside overlay */
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(2px);
+}
+
+/* The dropdown itself (under navbar) */
+.mobile-menu {
+  position: sticky;
+  top: 64px; /* if navbar height differs, adjust */
+  margin: 10px 12px 0;
+  padding: 12px;
+  border-radius: 16px;
+
+  background: linear-gradient(180deg, rgba(17,24,39,0.92), rgba(2,6,23,0.92));
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  animation: slideDown 0.22s ease;
+}
+
+.mobile-menu button {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.mobile-menu button:hover { background: rgba(255,255,255,0.12); }
+
+.mobile-menu button.danger {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #ff6b6b;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- MOBILE NAVBAR FIX (Hamburger small, beside title) --- */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .nav-brand {
+    flex: 1;
+    min-width: 0; /* allows title to shrink instead of pushing layout */
+  }
+
+  .nav-brand h2 {
+    font-size: 1.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Make hamburger NOT full width */
+  .hamburger.mobile-only {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+
+    border-radius: 12px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.16);
   }
 }

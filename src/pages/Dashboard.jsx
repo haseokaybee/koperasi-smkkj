@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [students, setStudents] = useState([])
   const [classes, setClasses] = useState([])
 
-  // Loading states (separated = better UX)
+  // Loading states
   const [loadingFetch, setLoadingFetch] = useState(false)
   const [loadingUpload, setLoadingUpload] = useState(false)
   const [loadingSave, setLoadingSave] = useState(false)
@@ -44,10 +44,30 @@ export default function Dashboard() {
   // Theme toggle (dark <-> darker)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
 
+  // Mobile hamburger menu
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const isBusy = loadingFetch || loadingUpload || loadingSave
+
+  // Apply theme to <html>
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  // Close menu when modal opens
+  useEffect(() => {
+    if (showModal) setMenuOpen(false)
+  }, [showModal])
+
+  // Close menu when switching to desktop width
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 768) setMenuOpen(false)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // --- Auth guard + initial fetch ---
   useEffect(() => {
@@ -85,7 +105,7 @@ export default function Dashboard() {
     }
   }
 
-  // Fast class lookup (instead of .find for every row)
+  // Fast class lookup
   const classNameById = useMemo(() => {
     const map = new Map()
     for (const c of classes) map.set(String(c.id), c.name)
@@ -113,7 +133,7 @@ export default function Dashboard() {
     setSelectedFile(null)
   }
 
-  // Helpers for normalization
+  // Helpers
   const normalizeIC = (val) => {
     const s = String(val ?? '').trim()
     if (!s) return null
@@ -159,12 +179,7 @@ export default function Dashboard() {
           savings: normalizeSavings(row.savings || row.SIMPANAN || row['MODAL SYER'] || 0)
         }))
 
-        // Choose one:
-        // 1) insert (simple, but duplicates possible)
-        // const { error } = await supabase.from('students').insert(cleanedData)
-
-        // 2) upsert (recommended) — requires unique constraint on ic_number or member_number
-        // If you set `ic_number` UNIQUE in Supabase, this will update existing rows instead of duplicating.
+        // Recommended upsert (needs UNIQUE on ic_number)
         const { error } = await supabase
           .from('students')
           .upsert(cleanedData, { onConflict: 'ic_number' })
@@ -187,7 +202,7 @@ export default function Dashboard() {
     reader.readAsArrayBuffer(selectedFile)
   }
 
-  // --- Add student (modal) ---
+  // --- Add student ---
   const handleAddStudent = async (e) => {
     e.preventDefault()
     setLoadingSave(true)
@@ -262,15 +277,27 @@ export default function Dashboard() {
   const indexOfFirstRow = indexOfLastRow - rowsPerPage
   const currentRows = filteredStudents.slice(indexOfFirstRow, indexOfLastRow)
 
-  // --- Stats from filtered data ---
+  // Stats from filtered data
   const totalFiltered = filteredStudents.length
   const maleCount = filteredStudents.filter((s) => String(s.gender || '').toLowerCase() === 'lelaki').length
   const femaleCount = filteredStudents.filter((s) => String(s.gender || '').toLowerCase() === 'perempuan').length
   const totalSavings = filteredStudents.reduce((acc, s) => acc + (Number(s.savings) || 0), 0)
-
   const malePercentage = totalFiltered > 0 ? (maleCount / totalFiltered) * 100 : 0
 
-  const isBusy = loadingFetch || loadingUpload || loadingSave
+  // Helpers for mobile menu actions (close menu after click)
+  const go = (path) => {
+    setMenuOpen(false)
+    navigate(path)
+  }
+
+  const openAddStudent = () => {
+    setMenuOpen(false)
+    setShowModal(true)
+  }
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === 'darker' ? 'dark' : 'darker'))
+  }
 
   return (
     <div className="dashboard-container">
@@ -279,10 +306,12 @@ export default function Dashboard() {
           <h2>Koperasi SMK Khir Johari</h2>
         </div>
 
-        <div className="nav-controls">
+        {/* Desktop controls */}
+        <div className="nav-controls desktop-only">
           <button onClick={() => navigate('/dashboard')} className="tab-btn active">
             Senarai Pelajar
           </button>
+
           <button onClick={() => navigate('/classes')} className="tab-btn">
             Lihat Kelas
           </button>
@@ -291,11 +320,7 @@ export default function Dashboard() {
             + Tambah Pelajar
           </button>
 
-          <button
-            className="tab-btn"
-            onClick={() => setTheme((t) => (t === 'darker' ? 'dark' : 'darker'))}
-            title="Toggle theme"
-          >
+          <button className="tab-btn" onClick={toggleTheme}>
             Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
           </button>
 
@@ -303,7 +328,34 @@ export default function Dashboard() {
             Logout
           </button>
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="hamburger mobile-only"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
       </nav>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
+          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => go('/dashboard')}>Senarai Pelajar</button>
+            <button onClick={() => go('/classes')}>Lihat Kelas</button>
+            <button onClick={openAddStudent}>+ Tambah Pelajar</button>
+            <button onClick={toggleTheme}>
+              Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
+            </button>
+            <button className="danger" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="content-wrapper">
         <div className="stats-grid">
@@ -360,6 +412,7 @@ export default function Dashboard() {
               </h3>
               <span>Terkumpul</span>
             </div>
+
             <div style={{ marginTop: '20px', opacity: 0.5, fontSize: '0.8rem' }}>
               Sesi Persekolahan 2026
             </div>
@@ -389,6 +442,7 @@ export default function Dashboard() {
                   >
                     {loadingUpload ? 'Uploading...' : 'Confirm'}
                   </button>
+
                   <button
                     onClick={clearFile}
                     className="logout-btn"
@@ -618,9 +672,7 @@ export default function Dashboard() {
                   className="search-input"
                   placeholder="0.00"
                   value={newStudent.savings}
-                  onChange={(e) =>
-                    setNewStudent({ ...newStudent, savings: Number(e.target.value || 0) })
-                  }
+                  onChange={(e) => setNewStudent({ ...newStudent, savings: Number(e.target.value || 0) })}
                   disabled={loadingSave}
                 />
               </div>
@@ -636,12 +688,7 @@ export default function Dashboard() {
                   Batal
                 </button>
 
-                <button
-                  type="submit"
-                  className="add-btn"
-                  style={{ margin: 0 }}
-                  disabled={loadingSave}
-                >
+                <button type="submit" className="add-btn" style={{ margin: 0 }} disabled={loadingSave}>
                   {loadingSave ? 'Menyimpan...' : 'Simpan Data'}
                 </button>
               </div>
