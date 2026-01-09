@@ -2,27 +2,34 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import { supabase } from '../supabaseClient'
-import './Dashboard.css';
-import CounterMoney from './CounterMoney'; // Add this near your other imports
-
+import './Dashboard.css'
+import CounterMoney from './CounterMoney'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+
+  // Data state
   const [students, setStudents] = useState([])
   const [classes, setClasses] = useState([])
-  const [loading, setLoading] = useState(false)
+
+  // Loading states (separated = better UX)
+  const [loadingFetch, setLoadingFetch] = useState(false)
+  const [loadingUpload, setLoadingUpload] = useState(false)
+  const [loadingSave, setLoadingSave] = useState(false)
+
+  // File state
   const [selectedFile, setSelectedFile] = useState(null)
-  
-  // Modal State
+
+  // Modal state
   const [showModal, setShowModal] = useState(false)
-  const [newStudent, setNewStudent] = useState({ 
-    name: '', 
-    gender: 'Lelaki', 
-    class_id: '', 
-    member_number: '', 
-    ic_number: '', 
-    savings: 0 
+  const [newStudent, setNewStudent] = useState({
+    name: '',
+    gender: 'LELAKI',
+    class_id: '',
+    member_number: '',
+    ic_number: '',
+    savings: 0
   })
 
   // Filters
@@ -30,200 +37,317 @@ export default function Dashboard() {
   const [filterClass, setFilterClass] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const rowsPerPage = 10
+
+  // Theme toggle (dark <-> darker)
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+
   useEffect(() => {
-    const checkUserAndFetch = async () => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+  // --- Auth guard + initial fetch ---
+  useEffect(() => {
+    const boot = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) {
         navigate('/')
         return
       }
-      fetchData()
+      await fetchData()
     }
-    checkUserAndFetch()
+    boot()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate])
 
-  async function fetchData() {
-    setLoading(true)
+  const fetchData = async () => {
+    setLoadingFetch(true)
     try {
-      const { data: studentData, error: sError } = await supabase
-        .from('students')
-        .select('*')
-        .order('name', { ascending: true })
-      
+      const [{ data: studentData, error: sError }, { data: classData, error: cError }] =
+        await Promise.all([
+          supabase.from('students').select('*').order('name', { ascending: true }),
+          supabase.from('classes').select('*').order('name', { ascending: true })
+        ])
+
       if (sError) throw sError
-      setStudents(studentData || [])
-
-      const { data: classData, error: cError } = await supabase
-        .from('classes')
-        .select('*')
-        .order('name', { ascending: true })
-
       if (cError) throw cError
+
+      setStudents(studentData || [])
       setClasses(classData || [])
-    } catch (error) {
-      console.error('Error:', error.message)
+    } catch (err) {
+      console.error('Fetch error:', err?.message || err)
+      alert('Ralat memuatkan data. Sila cuba lagi.')
     } finally {
-      setLoading(false)
+      setLoadingFetch(false)
     }
   }
 
+  // Fast class lookup (instead of .find for every row)
+  const classNameById = useMemo(() => {
+    const map = new Map()
+    for (const c of classes) map.set(String(c.id), c.name)
+    return map
+  }, [classes])
+
   const getClassName = (classId) => {
-    if (!classId) return 'N/A';
-    const foundClass = classes.find(c => c.id.toString() === classId.toString());
-    return foundClass ? foundClass.name : 'N/A';
+    if (!classId) return 'N/A'
+    return classNameById.get(String(classId)) || 'N/A'
   }
 
+  // --- Logout ---
   const handleLogout = async () => {
     await supabase.auth.signOut()
     navigate('/')
   }
 
+  // --- File handlers ---
   const onFileChange = (e) => {
-    if (e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
-  const clearFile = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""; 
-    }
-    setSelectedFile(null);
-  };
-
-  const handleFileUpload = async () => {
-    if (!selectedFile) return;
-    setLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-        const cleanedData = rawData.map(row => ({
-          name: row.name || 'Unknown',
-          gender: row.gender === 'PEREMPUAN' ? 'PEREMPUAN' : 'LELAKI',
-          ic_number: row.ic_number ? row.ic_number.toString().replace(/[- ]/g, '') : null,
-          member_number: row.member_number ? row.member_number.toString() : null,
-          class_id: row.class_id,
-          savings: row.savings ? parseFloat(row.savings) : 0
-        }));
-
-        const { error } = await supabase.from('students').insert(cleanedData);
-        if (error) {
-          alert("Ralat Muat Naik: " + error.message);
-        } else {
-          alert("Data Berjaya Dimuat Naik!");
-          clearFile();
-          fetchData();
-        }
-      } catch (err) {
-        alert("Ralat memproses fail Excel.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    reader.readAsArrayBuffer(selectedFile);
-  };
-
-  const handleAddStudent = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    const { error } = await supabase.from('students').insert([newStudent])
-    if (error) {
-      alert("Ralat: " + error.message)
-    } else {
-      setShowModal(false)
-      setNewStudent({ name: '', gender: 'Lelaki', class_id: '', member_number: '', ic_number: '', savings: 0 })
-      fetchData()
-    }
-    setLoading(false)
+    if (e.target.files?.length > 0) setSelectedFile(e.target.files[0])
   }
 
-  // --- FILTER & SEARCH (Core Logic) ---
+  const clearFile = () => {
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    setSelectedFile(null)
+  }
+
+  // Helpers for normalization
+  const normalizeIC = (val) => {
+    const s = String(val ?? '').trim()
+    if (!s) return null
+    return s.replace(/[-\s]/g, '')
+  }
+
+  const normalizeMember = (val) => {
+    const s = String(val ?? '').trim()
+    return s ? s : null
+  }
+
+  const normalizeGender = (val) => {
+    const g = String(val ?? '').trim().toLowerCase()
+    if (g === 'perempuan' || g === 'p' || g === 'female' || g === 'f') return 'PEREMPUAN'
+    return 'LELAKI'
+  }
+
+  const normalizeSavings = (val) => {
+    const n = Number(val)
+    return Number.isFinite(n) ? n : 0
+  }
+
+  // --- Excel upload ---
+  const handleFileUpload = async () => {
+    if (!selectedFile) return
+
+    setLoadingUpload(true)
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+
+        const cleanedData = rawData.map((row) => ({
+          name: String(row.name || row.NAMA || row.nama || 'Unknown').trim() || 'Unknown',
+          gender: normalizeGender(row.gender || row.JANTINA || row.jantina),
+          ic_number: normalizeIC(row.ic_number || row.IC || row.ic || row['NO IC']),
+          member_number: normalizeMember(row.member_number || row.AHLI || row['NO AHLI']),
+          class_id: row.class_id || row.KELAS || row.kelas || null,
+          savings: normalizeSavings(row.savings || row.SIMPANAN || row['MODAL SYER'] || 0)
+        }))
+
+        // Choose one:
+        // 1) insert (simple, but duplicates possible)
+        // const { error } = await supabase.from('students').insert(cleanedData)
+
+        // 2) upsert (recommended) — requires unique constraint on ic_number or member_number
+        // If you set `ic_number` UNIQUE in Supabase, this will update existing rows instead of duplicating.
+        const { error } = await supabase
+          .from('students')
+          .upsert(cleanedData, { onConflict: 'ic_number' })
+
+        if (error) {
+          alert('Ralat Muat Naik: ' + error.message)
+        } else {
+          alert('Data Berjaya Dimuat Naik!')
+          clearFile()
+          await fetchData()
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Ralat memproses fail Excel.')
+      } finally {
+        setLoadingUpload(false)
+      }
+    }
+
+    reader.readAsArrayBuffer(selectedFile)
+  }
+
+  // --- Add student (modal) ---
+  const handleAddStudent = async (e) => {
+    e.preventDefault()
+    setLoadingSave(true)
+
+    try {
+      const payload = {
+        name: String(newStudent.name || '').trim(),
+        gender: newStudent.gender === 'PEREMPUAN' ? 'PEREMPUAN' : 'LELAKI',
+        class_id: newStudent.class_id || null,
+        member_number: normalizeMember(newStudent.member_number),
+        ic_number: normalizeIC(newStudent.ic_number),
+        savings: normalizeSavings(newStudent.savings)
+      }
+
+      if (!payload.name) {
+        alert('Sila masukkan nama pelajar.')
+        return
+      }
+      if (!payload.class_id) {
+        alert('Sila pilih kelas.')
+        return
+      }
+
+      const { error } = await supabase.from('students').insert([payload])
+      if (error) throw error
+
+      setShowModal(false)
+      setNewStudent({
+        name: '',
+        gender: 'LELAKI',
+        class_id: '',
+        member_number: '',
+        ic_number: '',
+        savings: 0
+      })
+      await fetchData()
+    } catch (err) {
+      console.error('Save error:', err?.message || err)
+      alert('Ralat: ' + (err?.message || 'Gagal menyimpan data.'))
+    } finally {
+      setLoadingSave(false)
+    }
+  }
+
+  // --- Filter + Search ---
   const filteredStudents = useMemo(() => {
-    return students.filter(s => {
+    const q = searchQuery.trim().toLowerCase()
+    return students.filter((s) => {
       const matchesGender = filterGender === 'All' ? true : s.gender === filterGender
-      const matchesClass = filterClass === 'All' ? true : s.class_id?.toString() === filterClass
-      const query = searchQuery.toLowerCase()
-      const matchesSearch = 
-        s.name?.toLowerCase().includes(query) || 
-        s.ic_number?.includes(query) || 
-        s.member_number?.toLowerCase().includes(query)
+      const matchesClass = filterClass === 'All' ? true : String(s.class_id ?? '') === String(filterClass)
+
+      if (!q) return matchesGender && matchesClass
+
+      const name = String(s.name || '').toLowerCase()
+      const ic = String(s.ic_number || '')
+      const member = String(s.member_number || '').toLowerCase()
+
+      const matchesSearch = name.includes(q) || ic.includes(q) || member.includes(q)
       return matchesGender && matchesClass && matchesSearch
     })
   }, [students, filterGender, filterClass, searchQuery])
 
-  // --- PAGINATION LOGIC ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10; // Change this number to show more or fewer rows
-
-  // Reset to page 1 whenever search or filters change
+  // Reset pagination when filters/search change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterGender, filterClass]);
+    setCurrentPage(1)
+  }, [searchQuery, filterGender, filterClass])
 
-  const indexOfLastRow = currentPage * rowsPerPage;
-  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = filteredStudents.slice(indexOfFirstRow, indexOfLastRow);
-  const totalPages = Math.ceil(filteredStudents.length / rowsPerPage);
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / rowsPerPage))
+  const safePage = Math.min(currentPage, totalPages)
+  const indexOfLastRow = safePage * rowsPerPage
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage
+  const currentRows = filteredStudents.slice(indexOfFirstRow, indexOfLastRow)
 
-  // --- DYNAMIC PIE CHART & STATS (Uses Filtered Data) ---
+  // --- Stats from filtered data ---
   const totalFiltered = filteredStudents.length
-  const maleCount = filteredStudents.filter(s => s.gender?.toLowerCase() === 'lelaki').length
-  const femaleCount = filteredStudents.filter(s => s.gender?.toLowerCase() === 'perempuan').length
+  const maleCount = filteredStudents.filter((s) => String(s.gender || '').toLowerCase() === 'lelaki').length
+  const femaleCount = filteredStudents.filter((s) => String(s.gender || '').toLowerCase() === 'perempuan').length
   const totalSavings = filteredStudents.reduce((acc, s) => acc + (Number(s.savings) || 0), 0)
 
-  // Calculate percentage for CSS conic-gradient
   const malePercentage = totalFiltered > 0 ? (maleCount / totalFiltered) * 100 : 0
+
+  const isBusy = loadingFetch || loadingUpload || loadingSave
 
   return (
     <div className="dashboard-container">
       <nav className="navbar">
-        <div className="nav-brand"><h2>Koperasi SMK Khir Johari</h2></div>
+        <div className="nav-brand">
+          <h2>Koperasi SMK Khir Johari</h2>
+        </div>
+
         <div className="nav-controls">
-          <button onClick={() => navigate('/dashboard')} className="tab-btn active">Senarai Pelajar</button>
-          <button onClick={() => navigate('/classes')} className="tab-btn">Lihat Kelas</button>
-          <button onClick={() => setShowModal(true)} className="add-btn">+ Tambah Pelajar</button>
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
+          <button onClick={() => navigate('/dashboard')} className="tab-btn active">
+            Senarai Pelajar
+          </button>
+          <button onClick={() => navigate('/classes')} className="tab-btn">
+            Lihat Kelas
+          </button>
+
+          <button onClick={() => setShowModal(true)} className="add-btn">
+            + Tambah Pelajar
+          </button>
+
+          <button
+            className="tab-btn"
+            onClick={() => setTheme((t) => (t === 'darker' ? 'dark' : 'darker'))}
+            title="Toggle theme"
+          >
+            Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
+          </button>
+
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
+          </button>
         </div>
       </nav>
 
       <div className="content-wrapper">
         <div className="stats-grid">
-          {/* UPDATED PIE CHART CARD */}
           <div className="stat-card centered-card">
             <p>Ringkasan Keahlian (Filtered)</p>
+
             <div className="total-main">
-              <h4><CounterMoney value={totalFiltered} prefix="" /></h4>
+              <h4>
+                <CounterMoney value={totalFiltered} prefix="" decimals={0} />
+              </h4>
               <span>Jumlah Pelajar</span>
             </div>
+
             <div className="chart-container-centered">
-              <div 
-                className="modern-pie" 
-                style={{ 
-                  background: totalFiltered > 0 
-                    ? `conic-gradient(#3b82f6 0% ${malePercentage}%, #f472b6 ${malePercentage}% 100%)`
-                    : 'rgba(255,255,255,0.1)' 
+              <div
+                className="modern-pie"
+                style={{
+                  background:
+                    totalFiltered > 0
+                      ? `conic-gradient(#3b82f6 0% ${malePercentage}%, #f472b6 ${malePercentage}% 100%)`
+                      : 'rgba(255,255,255,0.1)'
                 }}
               >
                 <div className="pie-hole">
-                   <span style={{fontSize: '0.75rem', fontWeight: '800'}}>
-                     {totalFiltered > 0 ? `${Math.round(malePercentage)}%` : '0%'}
-                   </span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>
+                    {totalFiltered > 0 ? `${Math.round(malePercentage)}%` : '0%'}
+                  </span>
                 </div>
               </div>
             </div>
+
             <div className="gender-row-centered">
               <div className="gender-item">
                 <span className="dot male"></span>
-                <p>Lelaki: <strong style={{color: '#60a5fa'}}>{maleCount}</strong></p>
+                <p>
+                  Lelaki: <strong style={{ color: '#60a5fa' }}>{maleCount}</strong>
+                </p>
               </div>
               <div className="gender-divider"></div>
               <div className="gender-item">
                 <span className="dot female"></span>
-                <p>Perempuan: <strong style={{color: '#f472b6'}}>{femaleCount}</strong></p>
+                <p>
+                  Perempuan: <strong style={{ color: '#f472b6' }}>{femaleCount}</strong>
+                </p>
               </div>
             </div>
           </div>
@@ -231,9 +355,9 @@ export default function Dashboard() {
           <div className="stat-card centered-card">
             <p>Jumlah Syer Saham</p>
             <div className="total-main">
-             <h3 style={{ color: 'var(--success)'  }}>
-  <CounterMoney value={totalSavings} />
-</h3>
+              <h3 style={{ color: 'var(--success)' }}>
+                <CounterMoney value={totalSavings} />
+              </h3>
               <span>Terkumpul</span>
             </div>
             <div style={{ marginTop: '20px', opacity: 0.5, fontSize: '0.8rem' }}>
@@ -246,46 +370,82 @@ export default function Dashboard() {
           <div className="card">
             <h4>Import Data (Excel)</h4>
             <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={onFileChange} className="file-input" />
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                ref={fileInputRef}
+                onChange={onFileChange}
+                className="file-input"
+                disabled={loadingUpload}
+              />
+
               {selectedFile && (
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={handleFileUpload} className="add-btn" style={{ flex: 1, background: 'var(--success)' }}>Confirm</button>
-                  <button onClick={clearFile} className="logout-btn" style={{ flex: 1 }}>Clear</button>
+                  <button
+                    onClick={handleFileUpload}
+                    className="add-btn"
+                    style={{ flex: 1, background: 'var(--success)' }}
+                    disabled={loadingUpload}
+                  >
+                    {loadingUpload ? 'Uploading...' : 'Confirm'}
+                  </button>
+                  <button
+                    onClick={clearFile}
+                    className="logout-btn"
+                    style={{ flex: 1 }}
+                    disabled={loadingUpload}
+                  >
+                    Clear
+                  </button>
                 </div>
               )}
             </div>
           </div>
-          
+
           <div className="card">
             <h4>Tapisan & Carian</h4>
             <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
               <input
                 className="search-input"
-                style={{flex: '2'}}
+                style={{ flex: '2' }}
                 placeholder="Cari Nama / IC / No. Ahli..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              
-              <select className="filter-select" style={{flex: '1'}} value={filterGender} onChange={(e) => setFilterGender(e.target.value)}>
+
+              <select
+                className="filter-select"
+                style={{ flex: '1' }}
+                value={filterGender}
+                onChange={(e) => setFilterGender(e.target.value)}
+              >
                 <option value="All">Semua Jantina</option>
                 <option value="LELAKI">Lelaki</option>
                 <option value="PEREMPUAN">Perempuan</option>
               </select>
 
-              <select className="filter-select" style={{flex: '1'}} value={filterClass} onChange={(e) => setFilterClass(e.target.value)}>
+              <select
+                className="filter-select"
+                style={{ flex: '1' }}
+                value={filterClass}
+                onChange={(e) => setFilterClass(e.target.value)}
+              >
                 <option value="All">Semua Kelas</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
         </div>
 
         <div className="table-card">
-          {loading ? (
-            <div style={{padding: '60px', textAlign: 'center'}}>
-               <div className="loading-spinner"></div>
-               <p style={{marginTop: '10px', opacity: 0.5}}>Memuatkan data...</p>
+          {loadingFetch ? (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+              <div className="loading-spinner"></div>
+              <p style={{ marginTop: '10px', opacity: 0.5 }}>Memuatkan data...</p>
             </div>
           ) : (
             <>
@@ -297,24 +457,31 @@ export default function Dashboard() {
                       <th>IC / AHLI</th>
                       <th>JANTINA</th>
                       <th>KELAS</th>
-                      <th>SIMPANAN (RM)</th>
+                      <th>MODAL SYER (RM)</th>
                     </tr>
                   </thead>
 
-                  {/* ✅ UPDATED TBODY to use currentRows */}
                   <tbody>
                     {currentRows.length > 0 ? (
-                      currentRows.map(student => (
+                      currentRows.map((student) => (
                         <tr key={student.id}>
-                          <td style={{fontWeight: '600'}}>{student.name}</td>
+                          <td style={{ fontWeight: '600' }}>{student.name}</td>
                           <td>
-                            <div style={{display: 'flex', flexDirection: 'column'}}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span>{student.ic_number || 'N/A'}</span>
-                              <small style={{opacity: 0.5, fontSize: '0.7rem'}}>AHLI: {student.member_number}</small>
+                              <small style={{ opacity: 0.5, fontSize: '0.7rem' }}>
+                                AHLI: {student.member_number || 'N/A'}
+                              </small>
                             </div>
                           </td>
                           <td>
-                            <span className={`badge ${student.gender?.toLowerCase() === 'lelaki' ? 'badge-blue' : 'badge-pink'}`}>
+                            <span
+                              className={`badge ${
+                                String(student.gender || '').toLowerCase() === 'lelaki'
+                                  ? 'badge-blue'
+                                  : 'badge-pink'
+                              }`}
+                            >
                               {student.gender}
                             </span>
                           </td>
@@ -335,25 +502,24 @@ export default function Dashboard() {
                 </table>
               </div>
 
-              {/* ✅ PAGINATION CONTROLS */}
               {filteredStudents.length > rowsPerPage && (
                 <div className="pagination-controls">
-                  <button 
-                    className="page-btn" 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
+                  <button
+                    className="page-btn"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={safePage === 1}
                   >
                     Previous
                   </button>
-                  
+
                   <span className="page-info">
-                    Muka Surat <strong>{currentPage}</strong> daripada <strong>{totalPages}</strong>
+                    Muka Surat <strong>{safePage}</strong> daripada <strong>{totalPages}</strong>
                   </span>
 
-                  <button 
-                    className="page-btn" 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
+                  <button
+                    className="page-btn"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={safePage === totalPages}
                   >
                     Next
                   </button>
@@ -365,52 +531,118 @@ export default function Dashboard() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => !loadingSave && setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{fontFamily: 'var(--font-heading)', marginBottom: '20px'}}>Tambah Pelajar Baru</h3>
+            <h3 style={{ fontFamily: 'var(--font-heading)', marginBottom: '20px' }}>
+              Tambah Pelajar Baru
+            </h3>
+
             <form onSubmit={handleAddStudent}>
               <div className="input-group">
                 <label>Nama Penuh</label>
-                <input required type="text" className="search-input" placeholder="Masukkan nama pelajar" value={newStudent.name} onChange={(e) => setNewStudent({...newStudent, name: e.target.value})} />
+                <input
+                  required
+                  type="text"
+                  className="search-input"
+                  placeholder="Masukkan nama pelajar"
+                  value={newStudent.name}
+                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                  disabled={loadingSave}
+                />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
                 <div className="input-group">
                   <label>No. IC (Tanpa -)</label>
-                  <input type="text" className="search-input" placeholder="010203040506" value={newStudent.ic_number} onChange={(e) => setNewStudent({...newStudent, ic_number: e.target.value})} />
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="010203040506"
+                    value={newStudent.ic_number}
+                    onChange={(e) => setNewStudent({ ...newStudent, ic_number: e.target.value })}
+                    disabled={loadingSave}
+                  />
                 </div>
+
                 <div className="input-group">
                   <label>No. Ahli</label>
-                  <input type="text" className="search-input" placeholder="K001" value={newStudent.member_number} onChange={(e) => setNewStudent({...newStudent, member_number: e.target.value})} />
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="K001"
+                    value={newStudent.member_number}
+                    onChange={(e) => setNewStudent({ ...newStudent, member_number: e.target.value })}
+                    disabled={loadingSave}
+                  />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
                 <div className="input-group">
                   <label>Jantina</label>
-                  <select className="filter-select" value={newStudent.gender} onChange={(e) => setNewStudent({...newStudent, gender: e.target.value})}>
+                  <select
+                    className="filter-select"
+                    value={newStudent.gender}
+                    onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })}
+                    disabled={loadingSave}
+                  >
                     <option value="LELAKI">Lelaki</option>
                     <option value="PEREMPUAN">Perempuan</option>
                   </select>
                 </div>
+
                 <div className="input-group">
                   <label>Kelas</label>
-                  <select required className="filter-select" value={newStudent.class_id} onChange={(e) => setNewStudent({...newStudent, class_id: e.target.value})}>
+                  <select
+                    required
+                    className="filter-select"
+                    value={newStudent.class_id}
+                    onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })}
+                    disabled={loadingSave}
+                  >
                     <option value="">Pilih Kelas</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              <div className="input-group" style={{marginTop: '10px'}}>
+              <div className="input-group" style={{ marginTop: '10px' }}>
                 <label>Simpanan Awal (RM)</label>
-                <input type="number" step="0.01" className="search-input" placeholder="0.00" value={newStudent.savings} onChange={(e) => setNewStudent({...newStudent, savings: e.target.value})} />
+                <input
+                  type="number"
+                  step="0.01"
+                  className="search-input"
+                  placeholder="0.00"
+                  value={newStudent.savings}
+                  onChange={(e) =>
+                    setNewStudent({ ...newStudent, savings: Number(e.target.value || 0) })
+                  }
+                  disabled={loadingSave}
+                />
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="logout-btn" onClick={() => setShowModal(false)} style={{margin: 0}}>Batal</button>
-                <button type="submit" className="add-btn" disabled={loading} style={{margin: 0}}>
-                  {loading ? 'Menyimpan...' : 'Simpan Data'}
+                <button
+                  type="button"
+                  className="logout-btn"
+                  onClick={() => setShowModal(false)}
+                  style={{ margin: 0 }}
+                  disabled={loadingSave}
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  className="add-btn"
+                  style={{ margin: 0 }}
+                  disabled={loadingSave}
+                >
+                  {loadingSave ? 'Menyimpan...' : 'Simpan Data'}
                 </button>
               </div>
             </form>
@@ -418,13 +650,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-container">
-        {/* ... Semua konten Navbar, Stats, Action Grid, dan Table Card ada di sini ... */}
-
-        <footer className="dashboard-footer">
-          <p>Hak Cipta Terpelihara &copy; 2026 Koperasi SMK Khir Johari</p>
-        </footer>
-      </div>
+      <footer className="dashboard-footer">
+        <p>Hak Cipta Terpelihara &copy; 2026 Koperasi SMK Khir Johari</p>
+        {isBusy && <small style={{ opacity: 0.45 }}>Memproses...</small>}
+      </footer>
     </div>
   )
 }
