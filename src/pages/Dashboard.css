@@ -1,3 +1,5 @@
+
+
 /* Dashboard.css - Aurora Glass (Enhanced + Cleaned) */
 
 /* ---------------------------
@@ -806,38 +808,65 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* --- MOBILE NAVBAR FIX (Hamburger small, beside title) --- */
+/* --- PREMIER CRYSTAL GLASS HAMBURGER (STRICT TRANSPARENCY) --- */
 @media (max-width: 768px) {
-  .navbar {
-    flex-direction: row !important;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-  }
-
-  .nav-brand {
-    flex: 1;
-    min-width: 0; /* allows title to shrink instead of pushing layout */
-  }
-
-  .nav-brand h2 {
-    font-size: 1.15rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Make hamburger NOT full width */
   .hamburger.mobile-only {
+    /* 1. CRITICAL SAFARI FIXES */
+    appearance: none !important;
+    -webkit-appearance: none !important; /* Removes iOS default button styling */
+    background: none !important; 
+    background-color: transparent !important;
+    -webkit-tap-highlight-color: transparent; /* Removes grey box on tap */
+    
+    /* 2. Dimensions & Layout */
     width: 44px;
     height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
     padding: 0;
-    display: grid;
-    place-items: center;
-
+    
+    /* 3. Glass Refraction */
+    /* Note: Safari needs the -webkit prefix for backdrop-filter to work */
+    backdrop-filter: blur(15px) saturate(180%);
+    -webkit-backdrop-filter: blur(15px) saturate(180%);
+    
+    /* 4. Diamond Edge */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.4); 
     border-radius: 12px;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.16);
+    
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
   }
+
+  /* Elegant Thin Lines */
+ .hamburger.mobile-only span {
+    display: block;
+    width: 20px;
+    height: 1.2px; 
+    background: #ffffff !important; /* Force lines to stay white */
+    border-radius: 4px;
+  }
+
+  /* Interactive States - Minimal Frost */
+  .hamburger.mobile-only:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  /* Remove all pseudo-elements that might add white tints */
+  .hamburger.mobile-only::before,
+  .hamburger.mobile-only::after {
+    display: none !important;
+  }
+}
+
+button.hamburger.mobile-only {
+    background-image: none !important;
+    filter: none !important;
 }

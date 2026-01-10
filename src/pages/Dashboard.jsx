@@ -6,6 +6,13 @@ import './Dashboard.css'
 import CounterMoney from './CounterMoney'
 
 export default function Dashboard() {
+
+const handleNavigation = (path) => {
+    setMenuOpen(false); // Close mobile menu if open
+    navigate(path);
+  };
+
+
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
 
@@ -306,25 +313,55 @@ export default function Dashboard() {
           <h2>Koperasi SMK Khir Johari</h2>
         </div>
 
-        {/* Desktop controls */}
+     {/* --- DESKTOP CONTROLS --- */}
         <div className="nav-controls desktop-only">
-          <button onClick={() => navigate('/dashboard')} className="tab-btn active">
+          <button 
+            type="button" 
+            onClick={() => handleNavigation('/dashboard')} 
+            className="tab-btn active"
+          >
             Senarai Pelajar
           </button>
 
-          <button onClick={() => navigate('/classes')} className="tab-btn">
+          <button 
+            type="button" 
+            onClick={() => handleNavigation('/classes')} 
+            className="tab-btn"
+          >
             Lihat Kelas
           </button>
 
-          <button onClick={() => setShowModal(true)} className="add-btn">
+          <button 
+            type="button" 
+            onClick={() => setShowModal(true)} 
+            className="add-btn"
+          >
             + Tambah Pelajar
           </button>
 
-          <button className="tab-btn" onClick={toggleTheme}>
-            Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
+          <button type="button" className="tab-btn" onClick={toggleTheme}>
+            {theme === 'darker' ? '🌙 Darker' : '🌑 Dark'}
           </button>
 
-          <button onClick={handleLogout} className="logout-btn">
+          {/* --- FIXED STATISTIK BUTTON --- */}
+          {/* Added distinct style and type="button" */}
+          <button 
+            type="button" 
+            className="tab-btn" 
+            style={{ color: '#60a5fa', fontWeight: 'bold' }}
+            onClick={(e) => {
+              e.preventDefault(); // Prevents page refresh
+              handleNavigation('/statistik');
+            }}
+          >
+            📊 Statistik Penuh
+          </button>
+
+          <button 
+            type="button" 
+            onClick={handleLogout} 
+            className="logout-btn"
+          >
             Logout
           </button>
         </div>
@@ -333,19 +370,24 @@ export default function Dashboard() {
         <button
           className="hamburger mobile-only"
           onClick={() => setMenuOpen((prev) => !prev)}
-          aria-label="Menu"
-          aria-expanded={menuOpen}
         >
           {menuOpen ? '✕' : '☰'}
         </button>
       </nav>
 
-      {/* Mobile dropdown menu */}
+      {/* --- MOBILE DROPDOWN MENU --- */}
+      {/* Added the missing Statistik button here */}
       {menuOpen && (
         <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => go('/dashboard')}>Senarai Pelajar</button>
-            <button onClick={() => go('/classes')}>Lihat Kelas</button>
+            <button onClick={() => handleNavigation('/dashboard')}>Senarai Pelajar</button>
+            <button onClick={() => handleNavigation('/classes')}>Lihat Kelas</button>
+            
+            {/* NEW BUTTON FOR MOBILE */}
+            <button onClick={() => handleNavigation('/statistik')} style={{ color: '#60a5fa' }}>
+              📊 Lihat Statistik
+            </button>
+            
             <button onClick={openAddStudent}>+ Tambah Pelajar</button>
             <button onClick={toggleTheme}>
               Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
@@ -356,6 +398,9 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+
+      
 
       <div className="content-wrapper">
         <div className="stats-grid">

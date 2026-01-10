@@ -1,0 +1,298 @@
+/* Statistik.css - Full Premium Glassmorphism Edition (v2.0) */
+
+
+
+:root {
+  --glass-surface: rgba(30, 41, 59, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+  --neon-blue: #3b82f6;
+  --neon-pink: #ec4899;
+  --neon-green: #10b981;
+}
+
+/* --- PAGE CONTAINER --- */
+.statistik-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: radial-gradient(circle at 0% 0%, rgba(15, 23, 42, 1) 0%, rgba(8, 10, 20, 1) 100%);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ambient Background Glows */
+.statistik-page::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.statistik-page::after {
+  content: '';
+  position: absolute;
+  bottom: 0%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --- CONTENT WRAPPER --- */
+.stat-content-wrapper {
+  position: relative;
+  z-index: 10;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* --- BACK BUTTON --- */
+.back-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 12px 24px;
+  border-radius: 50px;
+  cursor: pointer;
+  margin-bottom: 30px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+  pointer-events: all;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(-5px);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+/* --- HEADER --- */
+.stat-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.stat-header h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: -1.5px;
+  background: linear-gradient(180deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-header p {
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  font-weight: 700;
+}
+
+/* --- HERO GRID --- */
+.big-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.stat-hero-card {
+  background: var(--glass-surface);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-highlight);
+  border-radius: 40px;
+  padding: 50px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 20px 50px -15px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-hero-card:hover {
+  transform: translateY(-10px);
+  background: rgba(40, 50, 70, 0.5);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.stat-hero-card span {
+  display: block;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+/* --- MASSIVE TYPOGRAPHY (Targeting CounterMoney) --- */
+.stat-hero-card h2, 
+.stat-hero-card h2 * {
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 6.5rem !important; /* ULTRA BIG */
+  font-weight: 900 !important;
+  line-height: 0.85 !important;
+  letter-spacing: -4px !important;
+  margin: 0;
+}
+
+.stat-hero-card.money h2, 
+.stat-hero-card.money h2 * {
+  color: var(--neon-green);
+  text-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+}
+
+.stat-hero-card.students h2, 
+.stat-hero-card.students h2 * {
+  color: var(--neon-blue);
+  text-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+}
+
+.stat-hero-card p {
+  margin-top: 20px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- GENDER SECTION --- */
+.gender-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.gender-box {
+  background: rgba(20, 20, 30, 0.4);
+  border-radius: 30px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
+}
+
+.gender-box .icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+}
+
+.gender-box.male .icon { color: var(--neon-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+.gender-box.female .icon { color: var(--neon-pink); box-shadow: 0 0 20px rgba(236, 72, 153, 0.2); }
+
+.gender-box .number {
+  font-size: 4rem; /* Increased size */
+  font-weight: 900;
+  font-family: 'Outfit', sans-serif;
+  margin: 5px 0;
+}
+
+.gender-box .percent {
+  background: rgba(255,255,255,0.1);
+  padding: 6px 16px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- RESPONSIVE FIXES --- */
+@media (max-width: 1024px) {
+  .big-stats-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .stat-header h1 { font-size: 2.5rem; }
+  .stat-hero-card h2, .stat-hero-card h2 * { font-size: 4rem !important; letter-spacing: -2px !important; }
+  .gender-comparison { grid-template-columns: 1fr; }
+  .gender-box .number { font-size: 3rem; }
+}
+
+.download-btn {
+  background: rgba(16, 185, 129, 0.1); /* Subtle green */
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 12px 24px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.download-btn {
+  position: relative; /* Ensures it stays on top */
+  z-index: 50;        /* Higher than background glows */
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.download-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  color: white;
+}
+
+.stat-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .stat-actions {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .back-btn, .download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

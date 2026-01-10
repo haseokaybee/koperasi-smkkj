@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
-const CounterMoney = ({ value, prefix = "RM " }) => {
+// Added 'decimals' as a prop, defaulting to 2 if not provided
+const CounterMoney = ({ value, prefix = "RM ", decimals = 2 }) => {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -26,15 +27,15 @@ const CounterMoney = ({ value, prefix = "RM " }) => {
   }, [value]);
 
   return (
-  <span className="animated-money">
-    {prefix}
-    {displayValue.toLocaleString('en-MY', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    })}
-  </span>
-);
+    <span className="animated-money">
+      {prefix}
+      {displayValue.toLocaleString('en-MY', { 
+        // These now use the 'decimals' prop instead of being stuck at 2
+        minimumFractionDigits: decimals, 
+        maximumFractionDigits: decimals 
+      })}
+    </span>
+  );
 };
 
-// THIS IS THE MISSING LINE:
 export default CounterMoney;
