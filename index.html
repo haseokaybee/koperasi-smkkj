@@ -1,38 +1,458 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- ===== CHARSET & VIEWPORT ===== -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-<link rel="icon" type="image/png" href="/favicon-32x32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-
-
-
-    <title>Sistem Keahlian Koperasi SMK Khir Johari</title>
-
-    <meta name="description" content="Sistem pengurusan data keahlian dan simpanan syer Koperasi SMK Khir Johari bagi sesi 2026." />
-    <meta name="keywords" content="Koperasi, SMK Khir Johari, Simpanan Pelajar, Sistem Ahli" />
-    <meta name="author" content="Koperasi SMKKJ" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    
+    <!-- ===== PRIMARY META TAGS ===== -->
+    <title>Sistem Keahlian Koperasi | SMK Khir Johari</title>
+    <meta name="description" content="Sistem pengurusan data keahlian dan simpanan syer Koperasi SMK Khir Johari. Urus data pelajar, jantina, dan jumlah simpanan secara digital." />
+    <meta name="keywords" content="Koperasi, SMK Khir Johari, Simpanan Pelajar, Sistem Ahli, Pengurusan Data, Sistem Koperasi Sekolah" />
+    <meta name="author" content="Unit ICT Koperasi SMK Khir Johari" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- ===== THEME & COLOR ===== -->
+    <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+    <meta name="color-scheme" content="dark light">
+    
+    <!-- ===== OPEN GRAPH / SOCIAL META ===== -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://your-vercel-link.vercel.app/" />
-    <meta property="og:title" content="Koperasi SMK Khir Johari - Sistem Keahlian" />
-    <meta property="og:description" content="Urus data pelajar, jantina, dan jumlah simpanan secara digital dan efisien." />
-    <meta property="og:image" content="/smkkj.png" /> 
-
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="Koperasi SMK Khir Johari" />
-    <meta property="twitter:description" content="Sistem pengurusan keahlian koperasi sekolah." />
-
+    <meta property="og:site_name" content="Koperasi SMK Khir Johari" />
+    <meta property="og:title" content="Sistem Keahlian Koperasi | SMK Khir Johari" />
+    <meta property="og:description" content="Platform digital untuk pengurusan keahlian dan simpanan pelajar Koperasi SMK Khir Johari" />
+    <meta property="og:url" content="https://koperasi-smkkj.vercel.app" />
+    <meta property="og:image" content="https://koperasi-smkkj.vercel.app/smkkj-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Dashboard Sistem Keahlian Koperasi SMK Khir Johari" />
+    <meta property="og:locale" content="ms_MY" />
+    
+    <!-- ===== TWITTER CARD ===== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@smkkhirkj" />
+    <meta name="twitter:creator" content="@smkkhirkj" />
+    <meta name="twitter:title" content="Sistem Keahlian Koperasi SMK Khir Johari" />
+    <meta name="twitter:description" content="Sistem pengurusan keahlian koperasi sekolah secara digital" />
+    <meta name="twitter:image" content="https://koperasi-smkkj.vercel.app/smkkj-twitter.png" />
+    
+    <!-- ===== FAVICONS & APP ICONS ===== -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#020617" />
+    
+    <!-- ===== PWA MANIFEST ===== -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Koperasi SMKKJ" />
+    
+    <!-- ===== PRELOAD & PREFETCH CRITICAL RESOURCES ===== -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+    </noscript>
+    
+    <!-- Preload Font Awesome with fallback -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </noscript>
+    
+    <!-- ===== CRITICAL CSS (Inline for performance) ===== -->
+    <style>
+      /* Critical CSS - Loads immediately */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      body {
+        margin: 0;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background: #020617;
+        color: #ffffff;
+        overflow-x: hidden;
+        min-height: 100vh;
+        position: relative;
+      }
+      
+      /* Aurora Background for body - FIXED */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+          radial-gradient(circle at 85% 25%, rgba(244, 114, 182, 0.12) 0%, transparent 45%),
+          radial-gradient(circle at 50% 80%, rgba(167, 139, 250, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 25% 60%, rgba(16, 185, 129, 0.08) 0%, transparent 35%);
+        filter: blur(60px);
+        z-index: 0;
+        animation: auroraFloat 20s ease-in-out infinite alternate;
+        pointer-events: none;
+      }
+      
+      @keyframes auroraFloat {
+        0% {
+          transform: translate(-30px, -20px) rotate(0deg);
+          opacity: 0.8;
+        }
+        50% {
+          transform: translate(20px, 15px) rotate(2deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(-30px, -20px) rotate(-1deg);
+          opacity: 0.8;
+        }
+      }
+      
+      /* Subtle noise texture */
+      body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        opacity: 0.3;
+        z-index: 0;
+        pointer-events: none;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 1;
+      }
+      
+      /* Loading animation - SEPARATE ELEMENT (not attached to #root) */
+      .app-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
+      }
+      
+      .app-loading::after {
+        content: '';
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Hide loading animation when app loads */
+      body.app-loaded .app-loading {
+        opacity: 0;
+      }
+      
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        
+        body::before {
+          animation: none;
+        }
+        
+        .app-loading::after {
+          animation: none;
+        }
+        
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      
+      /* Performance optimizations */
+      .will-change {
+        will-change: transform, opacity;
+      }
+    </style>
+    
+    <!-- ===== ANALYTICS & VERIFICATION ===== -->
+    <!-- Structured Data (JSON-LD) for better SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Sistem Keahlian Koperasi SMK Khir Johari",
+      "description": "Sistem pengurusan data keahlian dan simpanan syer Koperasi SMK Khir Johari",
+      "url": "https://koperasi-smkkj.vercel.app",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "MYR"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Koperasi SMK Khir Johari",
+        "url": "https://koperasi-smkkj.vercel.app"
+      },
+      "screenshot": "https://koperasi-smkkj.vercel.app/smkkj-og.png"
+    }
+    </script>
   </head>
   <body>
+    <!-- ===== LOADING OVERLAY ===== -->
+    <div class="app-loading"></div>
+    
+    <!-- ===== APP ROOT ===== -->
     <div id="root"></div>
+    
+    <!-- ===== MAIN SCRIPT ===== -->
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- ===== PERFORMANCE & PWA ENHANCEMENTS ===== -->
+    <script>
+      // Create and add loading overlay
+      const loadingOverlay = document.querySelector('.app-loading');
+      
+      // Add loaded class to body when app is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        // Remove loading animation after app loads (with delay for React hydration)
+        setTimeout(() => {
+          document.body.classList.add('app-loaded');
+          // Remove loading overlay after animation completes
+          setTimeout(() => {
+            if (loadingOverlay && loadingOverlay.parentNode) {
+              loadingOverlay.parentNode.removeChild(loadingOverlay);
+            }
+          }, 500);
+        }, 1000); // Increased delay to ensure React is fully hydrated
+      });
+      
+      // Handle React app mount
+      window.addEventListener('load', function() {
+        // Additional safety: ensure loading screen is removed after React mounts
+        setTimeout(() => {
+          if (!document.body.classList.contains('app-loaded')) {
+            document.body.classList.add('app-loaded');
+          }
+          if (loadingOverlay && loadingOverlay.parentNode) {
+            setTimeout(() => {
+              loadingOverlay.parentNode.removeChild(loadingOverlay);
+            }, 300);
+          }
+        }, 1500);
+      });
+      
+      // Register service worker for PWA
+      if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(
+            registration => {
+              console.log('ServiceWorker registration successful');
+            },
+            err => {
+              console.log('ServiceWorker registration failed: ', err);
+            }
+          );
+        });
+      }
+      
+      // Detect connection speed
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (connection) {
+        if (connection.saveData === true || connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+          document.body.classList.add('save-data');
+        }
+      }
+      
+      // Handle offline/online status
+      function updateOnlineStatus() {
+        if (!navigator.onLine) {
+          // Show offline notification
+          const offlineToast = document.createElement('div');
+          offlineToast.className = 'offline-toast';
+          offlineToast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 9999;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideDown 0.3s ease;
+          `;
+          offlineToast.innerHTML = '<i class="fas fa-wifi-slash"></i> Anda sedang offline';
+          document.body.appendChild(offlineToast);
+          
+          setTimeout(() => {
+            if (offlineToast.parentNode) {
+              offlineToast.parentNode.removeChild(offlineToast);
+            }
+          }, 5000);
+        } else {
+          // Remove any existing offline toast
+          const existingToast = document.querySelector('.offline-toast');
+          if (existingToast && existingToast.parentNode) {
+            existingToast.parentNode.removeChild(existingToast);
+          }
+        }
+      }
+      
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+      updateOnlineStatus();
+      
+      // Error handling
+      window.addEventListener('error', function(e) {
+        console.error('Application error:', e.error);
+        // Remove loading screen on error
+        if (loadingOverlay && loadingOverlay.parentNode) {
+          loadingOverlay.parentNode.removeChild(loadingOverlay);
+        }
+        document.body.classList.add('app-loaded');
+      });
+      
+      // Unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+      });
+      
+      // Animation for slideDown
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    </script>
+    
+    <!-- ===== FALLBACK FOR OLD BROWSERS ===== -->
+    <noscript>
+      <style>
+        .app-loading { display: none !important; }
+        #root { 
+          padding: 40px;
+          text-align: center;
+        }
+        .no-js-message {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 40px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 16px;
+          backdrop-filter: blur(10px);
+        }
+        .no-js-message h1 {
+          margin-bottom: 20px;
+          color: #3b82f6;
+        }
+      </style>
+      <div class="no-js-message">
+        <h1>⚠️ JavaScript Diperlukan</h1>
+        <p>Sistem Keahlian Koperasi SMK Khir Johari memerlukan JavaScript untuk berfungsi dengan baik.</p>
+        <p>Sila aktifkan JavaScript dalam tetapan pelayar web anda dan muat semula halaman ini.</p>
+        <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+          <i class="fas fa-info-circle"></i> Hubungi Unit ICT sekolah untuk bantuan teknikal.
+        </p>
+      </div>
+    </noscript>
+    
+    <!-- ===== ACCESSIBILITY ENHANCEMENTS ===== -->
+    <script>
+      // Skip to main content for keyboard users
+      (function() {
+        const skipLink = document.createElement('a');
+        skipLink.href = '#main-content';
+        skipLink.className = 'skip-to-content';
+        skipLink.textContent = 'Langkau ke kandungan utama';
+        skipLink.style.cssText = `
+          position: absolute;
+          top: -40px;
+          left: 0;
+          background: #3b82f6;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 4px;
+          text-decoration: none;
+          font-weight: 600;
+          z-index: 10000;
+          transition: top 0.3s ease;
+        `;
+        skipLink.addEventListener('focus', function() {
+          this.style.top = '10px';
+        });
+        skipLink.addEventListener('blur', function() {
+          this.style.top = '-40px';
+        });
+        document.body.appendChild(skipLink);
+      })();
+      
+      // Add main content id to your main container in React
+      document.addEventListener('DOMContentLoaded', function() {
+        // This will be called after React renders
+        setTimeout(() => {
+          const mainContent = document.querySelector('.content-wrapper, main, [role="main"]');
+          if (mainContent && !mainContent.id) {
+            mainContent.id = 'main-content';
+          }
+        }, 2000);
+      });
+    </script>
   </body>
 </html>

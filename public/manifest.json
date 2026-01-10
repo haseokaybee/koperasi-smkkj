@@ -1,0 +1,59 @@
+{
+  "name": "Sistem Keahlian Koperasi SMK Khir Johari",
+  "short_name": "Koperasi SMKKJ",
+  "description": "Platform digital untuk pengurusan keahlian dan simpanan pelajar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity", "education"],
+  "shortcuts": [
+    {
+      "name": "Senarai Pelajar",
+      "short_name": "Pelajar",
+      "description": "Lihat dan urus senarai pelajar",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Tambah Pelajar",
+      "short_name": "Tambah",
+      "description": "Tambah pelajar baru",
+      "url": "/dashboard?action=add"
+    },
+    {
+      "name": "Statistik",
+      "short_name": "Statistik",
+      "description": "Lihat statistik keahlian",
+      "url": "/statistik"
+    }
+  ]
+}

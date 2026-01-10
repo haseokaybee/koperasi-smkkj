@@ -60,3 +60,80 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Additional Global Styles */
+.light-mode {
+  color-scheme: light;
+}
+
+/* Input validation styles */
+.input-group input.invalid {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+/* Demo button styles */
+.demo-button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.demo-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.light-theme .demo-button {
+  border-color: rgba(99, 102, 241, 0.3);
+  color: rgba(99, 102, 241, 0.8);
+}
+
+.light-theme .demo-button:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+/* Keyboard key styles */
+kbd {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Inter', monospace;
+  font-size: 0.7em;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.light-theme kbd {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Loading button text visibility */
+.login-button.loading .button-text {
+  visibility: hidden;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for theme changes */
+.login-container,
+.login-card,
+.input-group input,
+.login-button,
+.login-card h2,
+.login-card p {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

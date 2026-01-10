@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import { supabase } from '../supabaseClient'
@@ -6,30 +6,33 @@ import './Dashboard.css'
 import CounterMoney from './CounterMoney'
 
 export default function Dashboard() {
-
-const handleNavigation = (path) => {
-    setMenuOpen(false); // Close mobile menu if open
-    navigate(path);
-  };
-
-
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  const searchInputRef = useRef(null)
 
   // Data state
   const [students, setStudents] = useState([])
   const [classes, setClasses] = useState([])
+  const [stats, setStats] = useState({
+    totalSavings: 0,
+    totalStudents: 0,
+    maleCount: 0,
+    femaleCount: 0
+  })
 
   // Loading states
   const [loadingFetch, setLoadingFetch] = useState(false)
   const [loadingUpload, setLoadingUpload] = useState(false)
   const [loadingSave, setLoadingSave] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   // File state
   const [selectedFile, setSelectedFile] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   // Modal state
   const [showModal, setShowModal] = useState(false)
+  const [editingStudent, setEditingStudent] = useState(null)
   const [newStudent, setNewStudent] = useState({
     name: '',
     gender: 'LELAKI',
@@ -54,7 +57,23 @@ const handleNavigation = (path) => {
   // Mobile hamburger menu
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // Toast notifications
+  const [toast, setToast] = useState({ show: false, message: '', type: 'info' })
+
+  // Refresh indicator
+  const [lastUpdated, setLastUpdated] = useState(null)
+
+  // Student actions (edit/delete)
+  const [actionStudent, setActionStudent] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
   const isBusy = loadingFetch || loadingUpload || loadingSave
+
+  // Show toast notification
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000)
+  }, [])
 
   // Apply theme to <html>
   useEffect(() => {
@@ -76,19 +95,24 @@ const handleNavigation = (path) => {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  // Focus search input on mount
+  useEffect(() => {
+    searchInputRef.current?.focus()
+  }, [])
+
   // --- Auth guard + initial fetch ---
   useEffect(() => {
     const boot = async () => {
       const { data: { user }, error } = await supabase.auth.getUser()
       if (error || !user) {
+        showToast('Sila log masuk semula', 'error')
         navigate('/')
         return
       }
       await fetchData()
     }
     boot()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate])
+  }, [navigate, showToast])
 
   const fetchData = async () => {
     setLoadingFetch(true)
@@ -104,13 +128,31 @@ const handleNavigation = (path) => {
 
       setStudents(studentData || [])
       setClasses(classData || [])
+      setLastUpdated(new Date())
+      showToast('Data dimuatkan semula', 'success')
     } catch (err) {
       console.error('Fetch error:', err?.message || err)
-      alert('Ralat memuatkan data. Sila cuba lagi.')
+      showToast('Ralat memuatkan data', 'error')
     } finally {
       setLoadingFetch(false)
     }
   }
+
+  // Calculate statistics
+  useEffect(() => {
+    if (students.length > 0) {
+      const totalSavings = students.reduce((acc, s) => acc + (Number(s.savings) || 0), 0)
+      const maleCount = students.filter(s => s.gender === 'LELAKI').length
+      const femaleCount = students.filter(s => s.gender === 'PEREMPUAN').length
+      
+      setStats({
+        totalSavings,
+        totalStudents: students.length,
+        maleCount,
+        femaleCount
+      })
+    }
+  }, [students])
 
   // Fast class lookup
   const classNameById = useMemo(() => {
@@ -126,21 +168,34 @@ const handleNavigation = (path) => {
 
   // --- Logout ---
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/')
+    try {
+      await supabase.auth.signOut()
+      showToast('Log keluar berjaya', 'success')
+      navigate('/')
+    } catch (error) {
+      showToast('Ralat log keluar', 'error')
+    }
   }
 
   // --- File handlers ---
   const onFileChange = (e) => {
-    if (e.target.files?.length > 0) setSelectedFile(e.target.files[0])
+    if (e.target.files?.length > 0) {
+      const file = e.target.files[0]
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        showToast('Fail terlalu besar. Sila pilih fail < 10MB', 'error')
+        return
+      }
+      setSelectedFile(file)
+    }
   }
 
   const clearFile = () => {
     if (fileInputRef.current) fileInputRef.current.value = ''
     setSelectedFile(null)
+    setUploadProgress(0)
   }
 
-  // Helpers
+  // Normalization helpers
   const normalizeIC = (val) => {
     const s = String(val ?? '').trim()
     if (!s) return null
@@ -160,7 +215,7 @@ const handleNavigation = (path) => {
 
   const normalizeSavings = (val) => {
     const n = Number(val)
-    return Number.isFinite(n) ? n : 0
+    return Number.isFinite(n) ? Math.max(0, n) : 0
   }
 
   // --- Excel upload ---
@@ -168,6 +223,7 @@ const handleNavigation = (path) => {
     if (!selectedFile) return
 
     setLoadingUpload(true)
+    setUploadProgress(0)
 
     const reader = new FileReader()
     reader.onload = async (event) => {
@@ -177,40 +233,64 @@ const handleNavigation = (path) => {
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '' })
 
-        const cleanedData = rawData.map((row) => ({
-          name: String(row.name || row.NAMA || row.nama || 'Unknown').trim() || 'Unknown',
-          gender: normalizeGender(row.gender || row.JANTINA || row.jantina),
-          ic_number: normalizeIC(row.ic_number || row.IC || row.ic || row['NO IC']),
-          member_number: normalizeMember(row.member_number || row.AHLI || row['NO AHLI']),
-          class_id: row.class_id || row.KELAS || row.kelas || null,
-          savings: normalizeSavings(row.savings || row.SIMPANAN || row['MODAL SYER'] || 0)
-        }))
+        setUploadProgress(30)
 
-        // Recommended upsert (needs UNIQUE on ic_number)
+        const cleanedData = rawData.map((row, index) => {
+          setUploadProgress(30 + (index / rawData.length) * 40)
+          return {
+            name: String(row.name || row.NAMA || row.nama || 'Unknown').trim() || 'Unknown',
+            gender: normalizeGender(row.gender || row.JANTINA || row.jantina),
+            ic_number: normalizeIC(row.ic_number || row.IC || row.ic || row['NO IC']),
+            member_number: normalizeMember(row.member_number || row.AHLI || row['NO AHLI']),
+            class_id: row.class_id || row.KELAS || row.kelas || null,
+            savings: normalizeSavings(row.savings || row.SIMPANAN || row['MODAL SYER'] || 0)
+          }
+        })
+
+        setUploadProgress(80)
+
+        // Use upsert with conflict handling
         const { error } = await supabase
           .from('students')
-          .upsert(cleanedData, { onConflict: 'ic_number' })
+          .upsert(cleanedData, { onConflict: 'ic_number', ignoreDuplicates: false })
+
+        setUploadProgress(100)
 
         if (error) {
-          alert('Ralat Muat Naik: ' + error.message)
+          throw new Error(error.message)
         } else {
-          alert('Data Berjaya Dimuat Naik!')
+          const importedCount = cleanedData.length
+          showToast(`${importedCount} rekod berjaya diimport`, 'success')
           clearFile()
           await fetchData()
         }
       } catch (err) {
         console.error(err)
-        alert('Ralat memproses fail Excel.')
+        showToast(`Ralat: ${err.message}`, 'error')
       } finally {
         setLoadingUpload(false)
+        setTimeout(() => setUploadProgress(0), 1000)
       }
     }
 
     reader.readAsArrayBuffer(selectedFile)
   }
 
-  // --- Add student ---
-  const handleAddStudent = async (e) => {
+  // --- Add/Edit student ---
+  const openEditModal = (student) => {
+    setEditingStudent(student)
+    setNewStudent({
+      name: student.name,
+      gender: student.gender,
+      class_id: student.class_id,
+      member_number: student.member_number || '',
+      ic_number: student.ic_number || '',
+      savings: student.savings || 0
+    })
+    setShowModal(true)
+  }
+
+  const handleSaveStudent = async (e) => {
     e.preventDefault()
     setLoadingSave(true)
 
@@ -225,17 +305,31 @@ const handleNavigation = (path) => {
       }
 
       if (!payload.name) {
-        alert('Sila masukkan nama pelajar.')
+        showToast('Sila masukkan nama pelajar', 'error')
         return
       }
       if (!payload.class_id) {
-        alert('Sila pilih kelas.')
+        showToast('Sila pilih kelas', 'error')
         return
       }
 
-      const { error } = await supabase.from('students').insert([payload])
+      let error
+      if (editingStudent) {
+        // Update existing student
+        const { error: updateError } = await supabase
+          .from('students')
+          .update(payload)
+          .eq('id', editingStudent.id)
+        error = updateError
+      } else {
+        // Insert new student
+        const { error: insertError } = await supabase.from('students').insert([payload])
+        error = insertError
+      }
+
       if (error) throw error
 
+      showToast(editingStudent ? 'Pelajar dikemaskini' : 'Pelajar berjaya ditambah', 'success')
       setShowModal(false)
       setNewStudent({
         name: '',
@@ -245,12 +339,65 @@ const handleNavigation = (path) => {
         ic_number: '',
         savings: 0
       })
+      setEditingStudent(null)
       await fetchData()
     } catch (err) {
       console.error('Save error:', err?.message || err)
-      alert('Ralat: ' + (err?.message || 'Gagal menyimpan data.'))
+      showToast(`Ralat: ${err.message || 'Gagal menyimpan data'}`, 'error')
     } finally {
       setLoadingSave(false)
+    }
+  }
+
+  // --- Delete student ---
+  const handleDeleteStudent = async () => {
+    if (!actionStudent) return
+
+    setLoadingSave(true)
+    try {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', actionStudent.id)
+
+      if (error) throw error
+
+      showToast('Pelajar berjaya dipadam', 'success')
+      setShowDeleteConfirm(false)
+      setActionStudent(null)
+      await fetchData()
+    } catch (err) {
+      console.error('Delete error:', err?.message || err)
+      showToast(`Ralat: ${err.message || 'Gagal memadam pelajar'}`, 'error')
+    } finally {
+      setLoadingSave(false)
+    }
+  }
+
+  // --- Export to Excel ---
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const ws = XLSX.utils.json_to_sheet(filteredStudents.map(s => ({
+        'Nama': s.name,
+        'No. IC': s.ic_number || '',
+        'No. Ahli': s.member_number || '',
+        'Jantina': s.gender,
+        'Kelas': getClassName(s.class_id),
+        'Simpanan (RM)': s.savings || 0,
+        'Tarikh Daftar': new Date(s.created_at || Date.now()).toLocaleDateString('ms-MY')
+      })))
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Pelajar')
+      XLSX.writeFile(wb, `pelajar-koperasi-${new Date().toISOString().split('T')[0]}.xlsx`)
+      
+      showToast('Data berjaya dieksport', 'success')
+    } catch (err) {
+      console.error('Export error:', err)
+      showToast('Ralat mengeksport data', 'error')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -264,7 +411,7 @@ const handleNavigation = (path) => {
       if (!q) return matchesGender && matchesClass
 
       const name = String(s.name || '').toLowerCase()
-      const ic = String(s.ic_number || '')
+      const ic = String(s.ic_number || '').toLowerCase()
       const member = String(s.member_number || '').toLowerCase()
 
       const matchesSearch = name.includes(q) || ic.includes(q) || member.includes(q)
@@ -286,40 +433,119 @@ const handleNavigation = (path) => {
 
   // Stats from filtered data
   const totalFiltered = filteredStudents.length
-  const maleCount = filteredStudents.filter((s) => String(s.gender || '').toLowerCase() === 'lelaki').length
-  const femaleCount = filteredStudents.filter((s) => String(s.gender || '').toLowerCase() === 'perempuan').length
+  const maleCount = filteredStudents.filter((s) => s.gender === 'LELAKI').length
+  const femaleCount = filteredStudents.filter((s) => s.gender === 'PEREMPUAN').length
   const totalSavings = filteredStudents.reduce((acc, s) => acc + (Number(s.savings) || 0), 0)
   const malePercentage = totalFiltered > 0 ? (maleCount / totalFiltered) * 100 : 0
 
-  // Helpers for mobile menu actions (close menu after click)
-  const go = (path) => {
+  // Navigation
+  const handleNavigation = (path) => {
     setMenuOpen(false)
     navigate(path)
   }
 
   const openAddStudent = () => {
     setMenuOpen(false)
+    setEditingStudent(null)
+    setNewStudent({
+      name: '',
+      gender: 'LELAKI',
+      class_id: '',
+      member_number: '',
+      ic_number: '',
+      savings: 0
+    })
     setShowModal(true)
   }
 
   const toggleTheme = () => {
     setTheme((t) => (t === 'darker' ? 'dark' : 'darker'))
+    showToast(`Tema ditukar kepada ${theme === 'darker' ? 'Gelap' : 'Lebih Gelap'}`)
+  }
+
+  // Format date
+  const formatDate = (date) => {
+    if (!date) return 'Belum dikemas kini'
+    return new Date(date).toLocaleString('ms-MY', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   return (
     <div className="dashboard-container">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`toast toast-${toast.type}`}>
+          <div className="toast-content">
+            <span className="toast-icon">
+              {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : 'ℹ'}
+            </span>
+            <span className="toast-message">{toast.message}</span>
+            <button 
+              className="toast-close" 
+              onClick={() => setToast(prev => ({ ...prev, show: false }))}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => !loadingSave && setShowDeleteConfirm(false)}>
+          <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-icon">⚠️</div>
+            <h3>Padam Pelajar</h3>
+            <p>Adakah anda pasti mahu memadam pelajar ini?</p>
+            <p className="delete-name">{actionStudent?.name}</p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="logout-btn"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={loadingSave}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="delete-btn"
+                onClick={handleDeleteStudent}
+                disabled={loadingSave}
+              >
+                {loadingSave ? 'Memadam...' : 'Ya, Padam'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="navbar">
         <div className="nav-brand">
-          <h2>Koperasi SMK Khir Johari</h2>
+          <h2>
+            <i className="fas fa-university" style={{ marginRight: '10px', opacity: 0.8 }}></i>
+            Koperasi SMK Khir Johari
+          </h2>
+          {lastUpdated && (
+            <small style={{ opacity: 0.6, fontSize: '0.75rem', fontWeight: 'normal' }}>
+              Kemaskini: {formatDate(lastUpdated)}
+            </small>
+          )}
         </div>
 
-     {/* --- DESKTOP CONTROLS --- */}
+        {/* Desktop Controls */}
         <div className="nav-controls desktop-only">
           <button 
             type="button" 
             onClick={() => handleNavigation('/dashboard')} 
             className="tab-btn active"
           >
+            <i className="fas fa-users" style={{ marginRight: '8px' }}></i>
             Senarai Pelajar
           </button>
 
@@ -328,33 +554,31 @@ const handleNavigation = (path) => {
             onClick={() => handleNavigation('/classes')} 
             className="tab-btn"
           >
-            Lihat Kelas
+            <i className="fas fa-chalkboard" style={{ marginRight: '8px' }}></i>
+            Kelas
           </button>
 
           <button 
             type="button" 
-            onClick={() => setShowModal(true)} 
+            onClick={() => handleNavigation('/statistik')} 
+            className="tab-btn statistik-btn"
+          >
+            <i className="fas fa-chart-pie" style={{ marginRight: '8px' }}></i>
+            Statistik
+          </button>
+
+          <button 
+            type="button" 
+            onClick={openAddStudent} 
             className="add-btn"
           >
-            + Tambah Pelajar
+            <i className="fas fa-user-plus" style={{ marginRight: '8px' }}></i>
+            Tambah Pelajar
           </button>
 
-          <button type="button" className="tab-btn" onClick={toggleTheme}>
-            {theme === 'darker' ? '🌙 Darker' : '🌑 Dark'}
-          </button>
-
-          {/* --- FIXED STATISTIK BUTTON --- */}
-          {/* Added distinct style and type="button" */}
-          <button 
-            type="button" 
-            className="tab-btn" 
-            style={{ color: '#60a5fa', fontWeight: 'bold' }}
-            onClick={(e) => {
-              e.preventDefault(); // Prevents page refresh
-              handleNavigation('/statistik');
-            }}
-          >
-            📊 Statistik Penuh
+          <button type="button" className="tab-btn theme-btn" onClick={toggleTheme}>
+            <i className={theme === 'darker' ? 'fas fa-moon' : 'fas fa-adjust'}></i>
+            {theme === 'darker' ? ' Darker' : ' Dark'}
           </button>
 
           <button 
@@ -362,159 +586,205 @@ const handleNavigation = (path) => {
             onClick={handleLogout} 
             className="logout-btn"
           >
+            <i className="fas fa-sign-out-alt" style={{ marginRight: '8px' }}></i>
             Logout
           </button>
         </div>
 
-        {/* Mobile hamburger */}
-        <button
-          className="hamburger mobile-only"
-          onClick={() => setMenuOpen((prev) => !prev)}
-        >
-          {menuOpen ? '✕' : '☰'}
-        </button>
+       {/* Mobile hamburger - FIXED VERSION */}
+<button
+  className={`hamburger mobile-only ${menuOpen ? 'active' : ''}`}
+  onClick={() => setMenuOpen(!menuOpen)}
+  aria-label="Toggle menu"
+>
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
       </nav>
 
-      {/* --- MOBILE DROPDOWN MENU --- */}
-      {/* Added the missing Statistik button here */}
+      {/* Mobile Dropdown Menu */}
       {menuOpen && (
         <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => handleNavigation('/dashboard')}>Senarai Pelajar</button>
-            <button onClick={() => handleNavigation('/classes')}>Lihat Kelas</button>
-            
-            {/* NEW BUTTON FOR MOBILE */}
-            <button onClick={() => handleNavigation('/statistik')} style={{ color: '#60a5fa' }}>
-              📊 Lihat Statistik
+            <button onClick={() => handleNavigation('/dashboard')}>
+              <i className="fas fa-users"></i> Senarai Pelajar
             </button>
-            
-            <button onClick={openAddStudent}>+ Tambah Pelajar</button>
+            <button onClick={() => handleNavigation('/classes')}>
+              <i className="fas fa-chalkboard"></i> Kelas
+            </button>
+            <button onClick={() => handleNavigation('/statistik')} className="statistik-btn">
+              <i className="fas fa-chart-pie"></i> Statistik
+            </button>
+            <button onClick={openAddStudent}>
+              <i className="fas fa-user-plus"></i> Tambah Pelajar
+            </button>
             <button onClick={toggleTheme}>
-              Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
+              <i className="fas fa-palette"></i> Tema: {theme === 'darker' ? 'Darker' : 'Dark'}
             </button>
             <button className="danger" onClick={handleLogout}>
-              Logout
+              <i className="fas fa-sign-out-alt"></i> Logout
             </button>
           </div>
         </div>
       )}
 
-
-      
-
       <div className="content-wrapper">
+        {/* Quick Stats Cards */}
         <div className="stats-grid">
-          <div className="stat-card centered-card">
-            <p>Ringkasan Keahlian (Filtered)</p>
-
-            <div className="total-main">
-              <h4>
-                <CounterMoney value={totalFiltered} prefix="" decimals={0} />
-              </h4>
-              <span>Jumlah Pelajar</span>
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
+              <i className="fas fa-users" style={{ color: '#3b82f6' }}></i>
             </div>
-
-            <div className="chart-container-centered">
-              <div
-                className="modern-pie"
-                style={{
-                  background:
-                    totalFiltered > 0
-                      ? `conic-gradient(#3b82f6 0% ${malePercentage}%, #f472b6 ${malePercentage}% 100%)`
-                      : 'rgba(255,255,255,0.1)'
-                }}
-              >
-                <div className="pie-hole">
-                  <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>
-                    {totalFiltered > 0 ? `${Math.round(malePercentage)}%` : '0%'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="gender-row-centered">
-              <div className="gender-item">
-                <span className="dot male"></span>
-                <p>
-                  Lelaki: <strong style={{ color: '#60a5fa' }}>{maleCount}</strong>
-                </p>
-              </div>
-              <div className="gender-divider"></div>
-              <div className="gender-item">
-                <span className="dot female"></span>
-                <p>
-                  Perempuan: <strong style={{ color: '#f472b6' }}>{femaleCount}</strong>
-                </p>
-              </div>
+            <div className="stat-content">
+              <h3><CounterMoney value={stats.totalStudents} prefix="" decimals={0} /></h3>
+              <p>Jumlah Ahli</p>
+              <small>{stats.maleCount} Lelaki • {stats.femaleCount} Perempuan</small>
             </div>
           </div>
 
-          <div className="stat-card centered-card">
-            <p>Jumlah Syer Saham</p>
-            <div className="total-main">
-              <h3 style={{ color: 'var(--success)' }}>
-                <CounterMoney value={totalSavings} />
-              </h3>
-              <span>Terkumpul</span>
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(34, 197, 94, 0.1)' }}>
+              <i className="fas fa-coins" style={{ color: '#22c55e' }}></i>
             </div>
+            <div className="stat-content">
+              <h3><CounterMoney value={stats.totalSavings} /></h3>
+              <p>Jumlah Simpanan</p>
+              <small>RM {stats.totalSavings.toLocaleString('ms-MY')}</small>
+            </div>
+          </div>
 
-            <div style={{ marginTop: '20px', opacity: 0.5, fontSize: '0.8rem' }}>
-              Sesi Persekolahan 2026
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+              <i className="fas fa-chart-line" style={{ color: '#f59e0b' }}></i>
+            </div>
+            <div className="stat-content">
+              <h3>{filteredStudents.length}</h3>
+              <p>Hasil Tapisan</p>
+              <small>{filteredStudents.length} daripada {students.length}</small>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+              <i className="fas fa-graduation-cap" style={{ color: '#8b5cf6' }}></i>
+            </div>
+            <div className="stat-content">
+              <h3>{classes.length}</h3>
+              <p>Jumlah Kelas</p>
+              <small>Aktif dalam sistem</small>
             </div>
           </div>
         </div>
 
+        {/* Action Cards */}
         <div className="action-grid">
           <div className="card">
-            <h4>Import Data (Excel)</h4>
-            <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                ref={fileInputRef}
-                onChange={onFileChange}
-                className="file-input"
-                disabled={loadingUpload}
-              />
-
-              {selectedFile && (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={handleFileUpload}
-                    className="add-btn"
-                    style={{ flex: 1, background: 'var(--success)' }}
-                    disabled={loadingUpload}
-                  >
-                    {loadingUpload ? 'Uploading...' : 'Confirm'}
-                  </button>
-
-                  <button
-                    onClick={clearFile}
-                    className="logout-btn"
-                    style={{ flex: 1 }}
-                    disabled={loadingUpload}
-                  >
-                    Clear
-                  </button>
+            <div className="card-header">
+              <h4><i className="fas fa-file-import"></i> Import Excel</h4>
+              <button 
+                type="button" 
+                className="icon-btn"
+                onClick={() => document.getElementById('fileInput')?.click()}
+                title="Upload file"
+              >
+                <i className="fas fa-upload"></i>
+              </button>
+            </div>
+            <input
+              id="fileInput"
+              type="file"
+              accept=".xlsx, .xls"
+              ref={fileInputRef}
+              onChange={onFileChange}
+              className="file-input-hidden"
+              disabled={loadingUpload}
+            />
+            <div className="upload-area">
+              {selectedFile ? (
+                <>
+                  <div className="file-info">
+                    <i className="fas fa-file-excel"></i>
+                    <div>
+                      <strong>{selectedFile.name}</strong>
+                      <small>{(selectedFile.size / 1024).toFixed(1)} KB</small>
+                    </div>
+                  </div>
+                  {uploadProgress > 0 && (
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  )}
+                  <div className="upload-actions">
+                    <button
+                      onClick={handleFileUpload}
+                      className="add-btn"
+                      disabled={loadingUpload}
+                    >
+                      {loadingUpload ? 'Mengimport...' : 'Import Sekarang'}
+                    </button>
+                    <button
+                      onClick={clearFile}
+                      className="logout-btn"
+                      disabled={loadingUpload}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="upload-placeholder" onClick={() => document.getElementById('fileInput')?.click()}>
+                  <i className="fas fa-cloud-upload-alt"></i>
+                  <p>Klik untuk muat naik fail Excel</p>
+                  <small>Format: .xlsx, .xls (max 10MB)</small>
                 </div>
               )}
             </div>
           </div>
 
           <div className="card">
-            <h4>Tapisan & Carian</h4>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
-              <input
-                className="search-input"
-                style={{ flex: '2' }}
-                placeholder="Cari Nama / IC / No. Ahli..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-
+            <div className="card-header">
+              <h4><i className="fas fa-filter"></i> Tapisan & Carian</h4>
+              <button 
+                type="button" 
+                className="icon-btn"
+                onClick={() => {
+                  setSearchQuery('')
+                  setFilterGender('All')
+                  setFilterClass('All')
+                  showToast('Semua tapisan dibersihkan')
+                }}
+                title="Clear filters"
+              >
+                <i className="fas fa-redo"></i>
+              </button>
+            </div>
+            <div className="filter-grid">
+              <div className="search-box">
+                <i className="fas fa-search"></i>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Cari Nama / IC / No. Ahli..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button 
+                    type="button" 
+                    className="clear-search"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
               <select
                 className="filter-select"
-                style={{ flex: '1' }}
                 value={filterGender}
                 onChange={(e) => setFilterGender(e.target.value)}
               >
@@ -522,10 +792,8 @@ const handleNavigation = (path) => {
                 <option value="LELAKI">Lelaki</option>
                 <option value="PEREMPUAN">Perempuan</option>
               </select>
-
               <select
                 className="filter-select"
-                style={{ flex: '1' }}
                 value={filterClass}
                 onChange={(e) => setFilterClass(e.target.value)}
               >
@@ -536,15 +804,48 @@ const handleNavigation = (path) => {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                className="export-btn"
+                onClick={handleExport}
+                disabled={exporting || filteredStudents.length === 0}
+              >
+                {exporting ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i> Mengeksport...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-download"></i> Eksport ({filteredStudents.length})
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
 
+        {/* Main Data Table */}
         <div className="table-card">
+          <div className="table-header">
+            <h3>
+              <i className="fas fa-table"></i> Senarai Pelajar
+              <span className="record-count">({filteredStudents.length} rekod)</span>
+            </h3>
+            <button 
+              type="button" 
+              className="refresh-btn"
+              onClick={fetchData}
+              disabled={loadingFetch}
+            >
+              <i className={`fas fa-sync ${loadingFetch ? 'fa-spin' : ''}`}></i>
+              {loadingFetch ? 'Memuatkan...' : 'Segarkan'}
+            </button>
+          </div>
+
           {loadingFetch ? (
-            <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div className="loading-state">
               <div className="loading-spinner"></div>
-              <p style={{ marginTop: '10px', opacity: 0.5 }}>Memuatkan data...</p>
+              <p>Memuatkan data pelajar...</p>
             </div>
           ) : (
             <>
@@ -552,48 +853,100 @@ const handleNavigation = (path) => {
                 <table className="modern-table">
                   <thead>
                     <tr>
+                      <th>BIL</th>
                       <th>NAMA</th>
                       <th>IC / AHLI</th>
                       <th>JANTINA</th>
                       <th>KELAS</th>
-                      <th>MODAL SYER (RM)</th>
+                      <th>SYER (RM)</th>
+                      <th>TINDAKAN</th>
                     </tr>
                   </thead>
-
                   <tbody>
                     {currentRows.length > 0 ? (
-                      currentRows.map((student) => (
+                      currentRows.map((student, index) => (
                         <tr key={student.id}>
-                          <td style={{ fontWeight: '600' }}>{student.name}</td>
+                          <td className="text-muted">{indexOfFirstRow + index + 1}</td>
                           <td>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span>{student.ic_number || 'N/A'}</span>
-                              <small style={{ opacity: 0.5, fontSize: '0.7rem' }}>
-                                AHLI: {student.member_number || 'N/A'}
-                              </small>
+                            <div className="student-name">
+                              <strong>{student.name}</strong>
+                              {student.ic_number && (
+                                <small>IC: {student.ic_number}</small>
+                              )}
                             </div>
                           </td>
                           <td>
-                            <span
-                              className={`badge ${
-                                String(student.gender || '').toLowerCase() === 'lelaki'
-                                  ? 'badge-blue'
-                                  : 'badge-pink'
-                              }`}
-                            >
+                            <div className="id-numbers">
+                              <div className="ic-number">
+                                <i className="fas fa-id-card"></i>
+                                {student.ic_number || 'N/A'}
+                              </div>
+                              <div className="member-number">
+                                <i className="fas fa-user-tag"></i>
+                                {student.member_number || 'N/A'}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`gender-badge gender-${student.gender.toLowerCase()}`}>
+                              <i className={`fas fa-${student.gender === 'LELAKI' ? 'mars' : 'venus'}`}></i>
                               {student.gender}
                             </span>
                           </td>
-                          <td>{getClassName(student.class_id)}</td>
-                          <td style={{ fontWeight: '700', color: 'var(--success)' }}>
-                            {Number(student.savings || 0).toFixed(2)}
+                          <td>
+                            <span className="class-tag">
+                              <i className="fas fa-chalkboard-teacher"></i>
+                              {getClassName(student.class_id)}
+                            </span>
+                          </td>
+                          <td className="savings-cell">
+                            <div className="savings-amount">
+                              <i className="fas fa-coins"></i>
+                              {Number(student.savings || 0).toLocaleString('ms-MY', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                type="button"
+                                className="action-btn edit-btn"
+                                onClick={() => openEditModal(student)}
+                                title="Kemaskini"
+                              >
+                                <i className="fas fa-edit"></i>
+                              </button>
+                              <button
+                                type="button"
+                                className="action-btn delete-btn"
+                                onClick={() => {
+                                  setActionStudent(student)
+                                  setShowDeleteConfirm(true)
+                                }}
+                                title="Padam"
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '60px', opacity: 0.5 }}>
-                          Tiada data pelajar dijumpai.
+                        <td colSpan="7">
+                          <div className="empty-state">
+                            <i className="fas fa-user-slash"></i>
+                            <p>Tiada pelajar dijumpai</p>
+                            <button 
+                              type="button" 
+                              className="add-btn"
+                              onClick={openAddStudent}
+                            >
+                              <i className="fas fa-user-plus"></i> Tambah Pelajar Pertama
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -608,19 +961,28 @@ const handleNavigation = (path) => {
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={safePage === 1}
                   >
-                    Previous
+                    <i className="fas fa-chevron-left"></i> Sebelumnya
                   </button>
 
-                  <span className="page-info">
-                    Muka Surat <strong>{safePage}</strong> daripada <strong>{totalPages}</strong>
-                  </span>
+                  <div className="page-info">
+                    <span>Muka Surat <strong>{safePage}</strong> daripada <strong>{totalPages}</strong></span>
+                    <select
+                      className="page-select"
+                      value={safePage}
+                      onChange={(e) => setCurrentPage(Number(e.target.value))}
+                    >
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <option key={page} value={page}>{page}</option>
+                      ))}
+                    </select>
+                  </div>
 
                   <button
                     className="page-btn"
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={safePage === totalPages}
                   >
-                    Next
+                    Seterusnya <i className="fas fa-chevron-right"></i>
                   </button>
                 </div>
               )}
@@ -629,33 +991,45 @@ const handleNavigation = (path) => {
         </div>
       </div>
 
+      {/* Add/Edit Student Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => !loadingSave && setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontFamily: 'var(--font-heading)', marginBottom: '20px' }}>
-              Tambah Pelajar Baru
-            </h3>
+            <div className="modal-header">
+              <h3>
+                <i className="fas fa-user-edit"></i>
+                {editingStudent ? 'Kemaskini Pelajar' : 'Tambah Pelajar Baru'}
+              </h3>
+              <button 
+                type="button" 
+                className="modal-close"
+                onClick={() => setShowModal(false)}
+                disabled={loadingSave}
+              >
+                ✕
+              </button>
+            </div>
 
-            <form onSubmit={handleAddStudent}>
-              <div className="input-group">
-                <label>Nama Penuh</label>
-                <input
-                  required
-                  type="text"
-                  className="search-input"
-                  placeholder="Masukkan nama pelajar"
-                  value={newStudent.name}
-                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                  disabled={loadingSave}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+            <form onSubmit={handleSaveStudent}>
+              <div className="form-grid">
                 <div className="input-group">
-                  <label>No. IC (Tanpa -)</label>
+                  <label><i className="fas fa-user"></i> Nama Penuh *</label>
+                  <input
+                    required
+                    type="text"
+                    className="form-input"
+                    placeholder="Masukkan nama pelajar"
+                    value={newStudent.name}
+                    onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                    disabled={loadingSave}
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label><i className="fas fa-id-card"></i> No. IC</label>
                   <input
                     type="text"
-                    className="search-input"
+                    className="form-input"
                     placeholder="010203040506"
                     value={newStudent.ic_number}
                     onChange={(e) => setNewStudent({ ...newStudent, ic_number: e.target.value })}
@@ -664,23 +1038,21 @@ const handleNavigation = (path) => {
                 </div>
 
                 <div className="input-group">
-                  <label>No. Ahli</label>
+                  <label><i className="fas fa-tag"></i> No. Ahli</label>
                   <input
                     type="text"
-                    className="search-input"
+                    className="form-input"
                     placeholder="K001"
                     value={newStudent.member_number}
                     onChange={(e) => setNewStudent({ ...newStudent, member_number: e.target.value })}
                     disabled={loadingSave}
                   />
                 </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
                 <div className="input-group">
-                  <label>Jantina</label>
+                  <label><i className="fas fa-venus-mars"></i> Jantina</label>
                   <select
-                    className="filter-select"
+                    className="form-select"
                     value={newStudent.gender}
                     onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })}
                     disabled={loadingSave}
@@ -691,10 +1063,10 @@ const handleNavigation = (path) => {
                 </div>
 
                 <div className="input-group">
-                  <label>Kelas</label>
+                  <label><i className="fas fa-chalkboard"></i> Kelas *</label>
                   <select
                     required
-                    className="filter-select"
+                    className="form-select"
                     value={newStudent.class_id}
                     onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })}
                     disabled={loadingSave}
@@ -707,19 +1079,22 @@ const handleNavigation = (path) => {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="input-group" style={{ marginTop: '10px' }}>
-                <label>Simpanan Awal (RM)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="search-input"
-                  placeholder="0.00"
-                  value={newStudent.savings}
-                  onChange={(e) => setNewStudent({ ...newStudent, savings: Number(e.target.value || 0) })}
-                  disabled={loadingSave}
-                />
+                <div className="input-group">
+                  <label><i className="fas fa-coins"></i> Simpanan Awal (RM)</label>
+                  <div className="money-input">
+                    <span className="money-prefix">RM</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      placeholder="0.00"
+                      value={newStudent.savings}
+                      onChange={(e) => setNewStudent({ ...newStudent, savings: Number(e.target.value || 0) })}
+                      disabled={loadingSave}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="modal-actions">
@@ -727,14 +1102,24 @@ const handleNavigation = (path) => {
                   type="button"
                   className="logout-btn"
                   onClick={() => setShowModal(false)}
-                  style={{ margin: 0 }}
                   disabled={loadingSave}
                 >
                   Batal
                 </button>
-
-                <button type="submit" className="add-btn" style={{ margin: 0 }} disabled={loadingSave}>
-                  {loadingSave ? 'Menyimpan...' : 'Simpan Data'}
+                <button 
+                  type="submit" 
+                  className="add-btn" 
+                  disabled={loadingSave}
+                >
+                  {loadingSave ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i> Menyimpan...
+                    </>
+                  ) : editingStudent ? (
+                    'Kemaskini'
+                  ) : (
+                    'Simpan Pelajar'
+                  )}
                 </button>
               </div>
             </form>
@@ -743,8 +1128,15 @@ const handleNavigation = (path) => {
       )}
 
       <footer className="dashboard-footer">
-        <p>Hak Cipta Terpelihara &copy; 2026 Koperasi SMK Khir Johari</p>
-        {isBusy && <small style={{ opacity: 0.45 }}>Memproses...</small>}
+        <div className="footer-content">
+          <p>
+            <i className="fas fa-copyright"></i> Hak Cipta Terpelihara &copy; {new Date().getFullYear()} Koperasi SMK Khir Johari
+          </p>
+          <div className="footer-stats">
+            {isBusy && <span className="busy-indicator"><i className="fas fa-spinner fa-spin"></i> Memproses...</span>}
+            <span className="version">v2.0.0</span>
+          </div>
+        </div>
       </footer>
     </div>
   )
