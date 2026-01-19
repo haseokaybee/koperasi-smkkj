@@ -9,7 +9,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [darkMode, setDarkMode] = useState(true)
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [showPassword, setShowPassword] = useState(false)
   const [shakeError, setShakeError] = useState(false)
   const [emailValid, setEmailValid] = useState(true)
@@ -17,27 +17,17 @@ export default function Login() {
   const emailRef = useRef(null)
   const passwordRef = useRef(null)
 
-  // Apply theme to body and container
+  const isLight = theme === 'light'
+  const isDarker = theme === 'darker'
+
+  // Apply theme to document and save preference
   useEffect(() => {
-    const container = document.querySelector('.login-container')
-    if (darkMode) {
-      container.classList.remove('light-theme')
-      document.body.classList.remove('light-mode')
-    } else {
-      container.classList.add('light-theme')
-      document.body.classList.add('light-mode')
-    }
-    // Save theme preference
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light')
-  }, [darkMode])
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   // Load saved theme on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme === 'light') {
-      setDarkMode(false)
-    }
-    
     // Check for session
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
@@ -156,20 +146,20 @@ export default function Login() {
   }
 
   const toggleTheme = () => {
-    setDarkMode(!darkMode)
+    setTheme((prev) => (prev === 'light' ? 'dark' : prev === 'dark' ? 'darker' : 'light'))
   }
 
   return (
-    <div className="login-container">
+    <div className={`login-container ${isLight ? 'light-theme' : ''} ${isDarker ? 'darker-theme' : ''}`.trim()}>
       {/* Premium Theme Toggle */}
       <button 
         className="theme-toggle"
         onClick={toggleTheme}
         aria-label="Toggle Theme"
-        title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
       >
         <svg viewBox="0 0 24 24">
-          <path d={darkMode 
+          <path d={!isLight
             ? "M12,18c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S15.3,18,12,18zM12,8c-2.2,0-4,1.8-4,4s1.8,4,4,4s4-1.8,4-4S14.2,8,12,8z"
             : "M12,18c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S15.3,18,12,18zM12,4.7V12M12,4.7L14.7,7.3M12,4.7L9.3,7.3"
           } />
@@ -279,7 +269,7 @@ export default function Login() {
               <input
                 ref={passwordRef}
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="********"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -325,7 +315,7 @@ export default function Login() {
             <a 
               href="/reset-password" 
               style={{
-                color: darkMode ? 'rgba(99, 102, 241, 0.8)' : '#6366f1',
+                color: isLight ? '#6366f1' : 'rgba(99, 102, 241, 0.8)',
                 fontSize: '0.85rem',
                 textDecoration: 'none',
                 transition: 'all 0.2s ease'
@@ -360,10 +350,10 @@ export default function Login() {
         <div style={{
           marginTop: '30px',
           padding: '15px',
-          background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+          background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)',
           borderRadius: '12px',
           fontSize: '0.8rem',
-          color: darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
+          color: isLight ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'
         }}>
           <p style={{ margin: '0 0 8px 0' }}>
             <i className="fas fa-info-circle" style={{ marginRight: '8px' }}></i>
@@ -385,7 +375,7 @@ export default function Login() {
             gap: '8px'
           }}>
             <i className="fas fa-shield-alt"></i>
-            © {new Date().getFullYear()} Hak Cipta Terpelihara • Sistem Koperasi SMK Khir Johari
+            (c) {new Date().getFullYear()} Hak Cipta Terpelihara - Sistem Koperasi SMK Khir Johari
           </p>
         </footer>
       </div>
@@ -395,16 +385,16 @@ export default function Login() {
         position: 'fixed',
         bottom: '20px',
         right: '20px',
-        background: darkMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
+        background: isLight ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.3)',
         backdropFilter: 'blur(10px)',
         borderRadius: '8px',
         padding: '10px 15px',
         fontSize: '0.75rem',
-        color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
-        border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+        color: isLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)',
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
         display: 'none' /* Hide by default, show on hover? */
       }}>
-        <div><kbd>Tab</kbd> Navigate • <kbd>Enter</kbd> Submit</div>
+        <div><kbd>Tab</kbd> Navigate - <kbd>Enter</kbd> Submit</div>
       </div>
     </div>
   )

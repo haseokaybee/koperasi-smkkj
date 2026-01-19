@@ -64,6 +64,70 @@
   animation: pulse 2s infinite;
 }
 
+/* Light theme overrides */
+[data-theme="light"] .statistik-page {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #0f172a;
+}
+
+[data-theme="light"] .loading-screen {
+  background: rgba(248, 250, 252, 0.98);
+}
+
+[data-theme="light"] .loading-screen p {
+  color: #64748b;
+}
+
+[data-theme="light"] .statistik-header {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .back-btn {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #2563eb;
+}
+
+[data-theme="light"] .export-controls,
+[data-theme="light"] .metric-card,
+[data-theme="light"] .chart-section,
+[data-theme="light"] .stat-box,
+[data-theme="light"] .gender-card,
+[data-theme="light"] .statistik-footer {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .export-info,
+[data-theme="light"] .metric-content h3,
+[data-theme="light"] .metric-trend,
+[data-theme="light"] .chart-wrapper h3,
+[data-theme="light"] .stat-box h3,
+[data-theme="light"] .gender-comparison-enhanced h2 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .no-data-chart,
+[data-theme="light"] .no-data {
+  color: #475569;
+}
+
+[data-theme="light"] .chart-wrapper,
+[data-theme="light"] .class-item,
+[data-theme="light"] .top-student {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .statistik-footer .refresh-btn {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #2563eb;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;

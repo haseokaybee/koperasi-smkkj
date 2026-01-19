@@ -212,3 +212,63 @@
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Light theme overrides */
+[data-theme="light"] .class-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .class-card:hover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 23, 42, 0.16);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .class-card h3 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .student-count-badge {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+[data-theme="light"] .class-savings-box {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="light"] .class-id-label {
+  color: #4338ca;
+}
+
+[data-theme="light"] .click-hint {
+  color: rgba(15, 23, 42, 0.5);
+}
+
+[data-theme="light"] .back-btn {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0f172a;
+}
+
+[data-theme="light"] .mobile-menu {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96));
+  border-color: rgba(15,23,42,0.12);
+  box-shadow: 0 18px 36px rgba(15,23,42,0.12);
+}
+
+[data-theme="light"] .mobile-menu button {
+  background: rgba(15,23,42,0.04);
+  border-color: rgba(15,23,42,0.12);
+  color: #0f172a;
+}
+
+[data-theme="light"] .mobile-menu button.danger {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.24);
+  color: #b91c1c;
+}

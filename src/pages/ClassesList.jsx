@@ -111,7 +111,7 @@ export default function ClassesList() {
   }
 
   const toggleTheme = () => {
-    setTheme(t => (t === 'darker' ? 'dark' : 'darker'))
+    setTheme(t => (t === 'light' ? 'dark' : t === 'dark' ? 'darker' : 'light'))
   }
 
   const goClassesHome = () => {
@@ -149,7 +149,7 @@ export default function ClassesList() {
           </button>
 
           <button className="tab-btn" onClick={toggleTheme}>
-            Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
+            Tema: {theme === 'light' ? 'Cerah' : theme === 'dark' ? 'Gelap' : 'Lebih Gelap'}
           </button>
 
           <button onClick={handleLogout} className="logout-btn">
@@ -164,7 +164,7 @@ export default function ClassesList() {
           aria-label="Menu"
           aria-expanded={menuOpen}
         >
-          {menuOpen ? '✕' : '☰'}
+          {menuOpen ? 'x' : 'menu'}
         </button>
       </nav>
 
@@ -175,7 +175,7 @@ export default function ClassesList() {
             <button onClick={() => go('/dashboard')}>Senarai Pelajar</button>
             <button onClick={goClassesHome}>Lihat Kelas</button>
             <button onClick={toggleTheme}>
-              Theme: {theme === 'darker' ? 'Darker' : 'Dark'}
+              Tema: {theme === 'light' ? 'Cerah' : theme === 'dark' ? 'Gelap' : 'Lebih Gelap'}
             </button>
             <button className="danger" onClick={handleLogout}>
               Logout
@@ -212,7 +212,7 @@ export default function ClassesList() {
                   </div>
 
                   <div className="click-hint">
-                    Klik untuk lihat senarai <span className="arrow-move">→</span>
+                    Klik untuk lihat senarai <span className="arrow-move">-&gt;</span>
                   </div>
                 </div>
               )
@@ -244,7 +244,7 @@ export default function ClassesList() {
                     cursor: 'pointer'
                   }}
                 >
-                  ← Kembali
+                  &lt;- Kembali
                 </button>
                 <h2 style={{ color: 'white', margin: 0 }}>{selectedClass.name}</h2>
               </div>

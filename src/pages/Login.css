@@ -77,6 +77,14 @@
   background: var(--light-bg);
 }
 
+.login-container.darker-theme {
+  --dark-bg: #01030a;
+  --dark-card-border: rgba(255, 255, 255, 0.18);
+  --dark-input-bg: rgba(255, 255, 255, 0.06);
+  --dark-input-border: rgba(255, 255, 255, 0.22);
+  background: var(--dark-bg);
+}
+
 /* Prevent text size adjustment on mobile */
 .login-container {
   -webkit-text-size-adjust: 100%;
@@ -112,6 +120,15 @@
     radial-gradient(circle at 45% 85%, rgba(167, 139, 250, 0.2), transparent 50%);
   filter: blur(40px) saturate(110%);
   opacity: 0.5;
+}
+
+.login-container.darker-theme::before {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(56, 189, 248, 0.35), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(244, 114, 182, 0.3), transparent 45%),
+    radial-gradient(circle at 45% 85%, rgba(167, 139, 250, 0.35), transparent 50%);
+  filter: blur(35px) saturate(140%);
+  opacity: 0.75;
 }
 
 /* Noise overlay - Optimized for mobile */
@@ -847,18 +864,18 @@
 
 /* Light mode preference (system) */
 @media (prefers-color-scheme: light) {
-  .login-container:not(.light-theme):not(.dark-theme) {
+  .login-container:not(.light-theme):not(.dark-theme):not(.darker-theme) {
     /* Auto-switch to light if system prefers it */
     background: var(--light-bg);
   }
   
-  .login-container:not(.light-theme):not(.dark-theme) .login-card {
+  .login-container:not(.light-theme):not(.dark-theme):not(.darker-theme) .login-card {
     background: var(--light-card-bg);
     border: 1px solid var(--light-card-border);
     box-shadow: var(--light-shadow);
   }
   
-  .login-container:not(.light-theme):not(.dark-theme) .theme-toggle svg {
+  .login-container:not(.light-theme):not(.dark-theme):not(.darker-theme) .theme-toggle svg {
     fill: #1e293b;
   }
 }

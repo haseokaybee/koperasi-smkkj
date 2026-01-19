@@ -45,6 +45,7 @@ export default function Statistik() {
   const [exportingExcel, setExportingExcel] = useState(false);
   const [timeRange, setTimeRange] = useState('all'); // 'all', 'month', 'year'
   const chartRef = useRef(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   
   // Enhanced stats state
   const [stats, setStats] = useState({
@@ -65,12 +66,17 @@ export default function Statistik() {
   });
 
   const [allStudents, setAllStudents] = useState([]);
+  const [filteredStudents, setFilteredStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [activeChart, setActiveChart] = useState('pie'); // 'pie', 'bar', 'line', 'radar'
 
   useEffect(() => {
     fetchStats();
   }, [timeRange]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -90,13 +96,36 @@ export default function Statistik() {
       setAllStudents(students);
       setClasses(classesList);
 
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const rangeStart = (() => {
+        if (timeRange === 'month') {
+          const start = new Date(now);
+          start.setDate(start.getDate() - 30);
+          return start;
+        }
+        if (timeRange === 'year') {
+          return new Date(currentYear, 0, 1);
+        }
+        return null;
+      })();
+
+      const filteredStudents = students.filter((student) => {
+        if (!rangeStart) return true;
+        if (!student.created_at) return false;
+        const createdDate = new Date(student.created_at);
+        if (Number.isNaN(createdDate.getTime())) return false;
+        return createdDate >= rangeStart && createdDate <= now;
+      });
+      setFilteredStudents(filteredStudents);
+
       // Calculate comprehensive statistics
-      const totalStudents = students.length;
-      const maleStudents = students.filter(s => s.gender === 'LELAKI');
-      const femaleStudents = students.filter(s => s.gender === 'PEREMPUAN');
+      const totalStudents = filteredStudents.length;
+      const maleStudents = filteredStudents.filter(s => s.gender === 'LELAKI');
+      const femaleStudents = filteredStudents.filter(s => s.gender === 'PEREMPUAN');
       const maleCount = maleStudents.length;
       const femaleCount = femaleStudents.length;
-      const savingsList = students.map(s => Number(s.savings) || 0);
+      const savingsList = filteredStudents.map(s => Number(s.savings) || 0);
       const totalSavings = savingsList.reduce((sum, val) => sum + val, 0);
       const averageSavings = totalStudents > 0 ? totalSavings / totalStudents : 0;
       const maxSavings = savingsList.length > 0 ? Math.max(...savingsList) : 0;
@@ -106,7 +135,7 @@ export default function Statistik() {
       const classDistribution = {};
       const savingsByClass = {};
       
-      students.forEach(student => {
+      filteredStudents.forEach(student => {
         const className = classesList.find(c => c.id === student.class_id)?.name || 'Tidak Diketahui';
         classDistribution[className] = (classDistribution[className] || 0) + 1;
         savingsByClass[className] = (savingsByClass[className] || 0) + (Number(student.savings) || 0);
@@ -119,7 +148,7 @@ export default function Statistik() {
       };
 
       // Top students by savings
-      const topStudents = [...students]
+      const topStudents = [...filteredStudents]
         .sort((a, b) => (Number(b.savings) || 0) - (Number(a.savings) || 0))
         .slice(0, 5)
         .map(s => ({
@@ -131,15 +160,15 @@ export default function Statistik() {
       // Recent additions (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const recentAdditions = students.filter(s => {
+      const recentAdditions = filteredStudents.filter(s => {
         const createdDate = s.created_at ? new Date(s.created_at) : null;
         return createdDate && createdDate > thirtyDaysAgo;
       }).length;
 
       // Monthly trend (using actual data if available)
       const monthlyTrend = Array.from({ length: 12 }, (_, i) => {
-        const monthDate = new Date(2026, i, 1);
-        const monthStudents = students.filter(s => {
+        const monthDate = new Date(currentYear, i, 1);
+        const monthStudents = filteredStudents.filter(s => {
           const createdDate = s.created_at ? new Date(s.created_at) : null;
           return createdDate && 
                  createdDate.getMonth() === monthDate.getMonth() && 
@@ -269,6 +298,11 @@ export default function Statistik() {
   };
 
   // Chart Options
+  const isLight = theme === 'light';
+  const chartTextColor = isLight ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+  const chartGridColor = isLight ? 'rgba(15, 23, 42, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+  const chartTickColor = isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.7)';
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -276,17 +310,17 @@ export default function Statistik() {
       legend: {
         position: 'top',
         labels: {
-          color: 'rgba(255, 255, 255, 0.8)',
+          color: chartTextColor,
           font: {
             size: 12
           }
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: isLight ? 'rgba(15, 23, 42, 0.9)' : 'rgba(0, 0, 0, 0.8)',
         titleColor: 'rgba(255, 255, 255, 0.9)',
         bodyColor: 'rgba(255, 255, 255, 0.8)',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: isLight ? 'rgba(15, 23, 42, 0.1)' : 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1
       }
     }
@@ -385,13 +419,13 @@ export default function Statistik() {
       });
 
       // Detailed Student List (if space allows)
-      if (allStudents.length <= 50 && allStudents.length > 0) {
+      if (filteredStudents.length <= 50 && filteredStudents.length > 0) {
         yPos = doc.lastAutoTable.finalY + 15;
         doc.addPage();
         doc.setFontSize(14);
         doc.text('SENARAI AHLI LENGKAP', 20, 20);
 
-        const studentRows = allStudents.map((s, index) => [
+        const studentRows = filteredStudents.map((s, index) => [
           index + 1,
           (s.name || '').toUpperCase(),
           classes.find(c => c.id === s.class_id)?.name || 'N/A',
@@ -443,14 +477,14 @@ export default function Statistik() {
       const XLSX = await import('xlsx');
       
       // Check if there are students
-      if (allStudents.length === 0) {
+      if (filteredStudents.length === 0) {
         alert("Tiada data pelajar untuk dieksport");
         setExportingExcel(false);
         return;
       }
 
       // Prepare data
-      const studentData = allStudents.map((s, index) => ({
+      const studentData = filteredStudents.map((s, index) => ({
         'No': index + 1,
         'Nama': s.name || '',
         'No. IC': s.ic_number || '',
@@ -562,13 +596,13 @@ export default function Statistik() {
         <div className="export-controls">
           <div className="export-info">
             <i className="fas fa-database"></i>
-            <span>{stats.totalStudents} Rekod • {Object.keys(stats.classDistribution).length} Kelas</span>
+            <span>{stats.totalStudents} Rekod - {Object.keys(stats.classDistribution).length} Kelas</span>
           </div>
           <div className="export-buttons">
             <button 
               className="export-btn excel-btn"
               onClick={exportToExcel}
-              disabled={exportingExcel || allStudents.length === 0}
+              disabled={exportingExcel || filteredStudents.length === 0}
             >
               {exportingExcel ? (
                 <>
@@ -583,7 +617,7 @@ export default function Statistik() {
             <button 
               className="export-btn pdf-btn"
               onClick={generatePDF}
-              disabled={exportingPDF || allStudents.length === 0}
+              disabled={exportingPDF || filteredStudents.length === 0}
             >
               {exportingPDF ? (
                 <>
@@ -639,7 +673,7 @@ export default function Statistik() {
             <div className="metric-content">
               <h3>Taburan Jantina</h3>
               <div className="metric-value">
-                {stats.maleCount} ♂ • {stats.femaleCount} ♀
+                Lelaki: {stats.maleCount} / Perempuan: {stats.femaleCount}
               </div>
               <div className="metric-trend">
                 <i className="fas fa-percentage"></i>
@@ -724,18 +758,18 @@ export default function Statistik() {
                         y: {
                           beginAtZero: true,
                           grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: chartGridColor
                           },
                           ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: chartTickColor
                           }
                         },
                         x: {
                           grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: chartGridColor
                           },
                           ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: chartTickColor
                           }
                         }
                       }
@@ -760,18 +794,18 @@ export default function Statistik() {
                         y: {
                           beginAtZero: true,
                           grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: chartGridColor
                           },
                           ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: chartTickColor
                           }
                         },
                         x: {
                           grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: chartGridColor
                           },
                           ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: chartTickColor
                           }
                         }
                       }
@@ -795,16 +829,16 @@ export default function Statistik() {
                       scales: {
                         r: {
                           angleLines: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: chartGridColor
                           },
                           grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: chartGridColor
                           },
                           pointLabels: {
-                            color: 'rgba(255, 255, 255, 0.8)'
+                            color: chartTextColor
                           },
                           ticks: {
-                            color: 'rgba(255, 255, 255, 0.5)',
+                            color: chartTickColor,
                             backdropColor: 'transparent'
                           }
                         }

@@ -459,8 +459,10 @@ export default function Dashboard() {
   }
 
   const toggleTheme = () => {
-    setTheme((t) => (t === 'darker' ? 'dark' : 'darker'))
-    showToast(`Tema ditukar kepada ${theme === 'darker' ? 'Gelap' : 'Lebih Gelap'}`)
+    const nextTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'darker' : 'light'
+    setTheme(nextTheme)
+    const label = nextTheme === 'light' ? 'Cerah' : nextTheme === 'dark' ? 'Gelap' : 'Lebih Gelap'
+    showToast(`Tema ditukar kepada ${label}`)
   }
 
   // Format date
@@ -482,14 +484,14 @@ export default function Dashboard() {
         <div className={`toast toast-${toast.type}`}>
           <div className="toast-content">
             <span className="toast-icon">
-              {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : 'ℹ'}
+              {toast.type === 'success' ? 'OK' : toast.type === 'error' ? 'ERR' : 'i'}
             </span>
             <span className="toast-message">{toast.message}</span>
             <button 
               className="toast-close" 
               onClick={() => setToast(prev => ({ ...prev, show: false }))}
             >
-              ✕
+              x
             </button>
           </div>
         </div>
@@ -499,7 +501,7 @@ export default function Dashboard() {
       {showDeleteConfirm && (
         <div className="modal-overlay" onClick={() => !loadingSave && setShowDeleteConfirm(false)}>
           <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-icon">⚠️</div>
+            <div className="delete-icon">!</div>
             <h3>Padam Pelajar</h3>
             <p>Adakah anda pasti mahu memadam pelajar ini?</p>
             <p className="delete-name">{actionStudent?.name}</p>
@@ -527,15 +529,17 @@ export default function Dashboard() {
 
       <nav className="navbar">
         <div className="nav-brand">
-          <h2>
-            <i className="fas fa-university" style={{ marginRight: '10px', opacity: 0.8 }}></i>
-            Koperasi SMK Khir Johari
-          </h2>
-          {lastUpdated && (
-            <small style={{ opacity: 0.6, fontSize: '0.75rem', fontWeight: 'normal' }}>
-              Kemaskini: {formatDate(lastUpdated)}
-            </small>
-          )}
+          <div className="brand-title">
+            <i className="fas fa-university" aria-hidden="true"></i>
+            <div className="brand-text">
+              <h2>Koperasi SMK Khir Johari</h2>
+              {lastUpdated && (
+                <small className="brand-updated">
+                  Kemaskini: {formatDate(lastUpdated)}
+                </small>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Desktop Controls */}
@@ -577,8 +581,8 @@ export default function Dashboard() {
           </button>
 
           <button type="button" className="tab-btn theme-btn" onClick={toggleTheme}>
-            <i className={theme === 'darker' ? 'fas fa-moon' : 'fas fa-adjust'}></i>
-            {theme === 'darker' ? ' Darker' : ' Dark'}
+            <i className={theme === 'light' ? 'fas fa-sun' : 'fas fa-moon'}></i>
+            {theme === 'light' ? ' Cerah' : theme === 'dark' ? ' Gelap' : ' Lebih Gelap'}
           </button>
 
           <button 
@@ -620,7 +624,7 @@ export default function Dashboard() {
               <i className="fas fa-user-plus"></i> Tambah Pelajar
             </button>
             <button onClick={toggleTheme}>
-              <i className="fas fa-palette"></i> Tema: {theme === 'darker' ? 'Darker' : 'Dark'}
+              <i className="fas fa-palette"></i> Tema: {theme === 'light' ? 'Cerah' : theme === 'dark' ? 'Gelap' : 'Lebih Gelap'}
             </button>
             <button className="danger" onClick={handleLogout}>
               <i className="fas fa-sign-out-alt"></i> Logout
@@ -639,7 +643,7 @@ export default function Dashboard() {
             <div className="stat-content">
               <h3><CounterMoney value={stats.totalStudents} prefix="" decimals={0} /></h3>
               <p>Jumlah Ahli</p>
-              <small>{stats.maleCount} Lelaki • {stats.femaleCount} Perempuan</small>
+              <small>{stats.maleCount} Lelaki - {stats.femaleCount} Perempuan</small>
             </div>
           </div>
 
@@ -779,7 +783,7 @@ export default function Dashboard() {
                     className="clear-search"
                     onClick={() => setSearchQuery('')}
                   >
-                    ✕
+                    x
                   </button>
                 )}
               </div>
@@ -1006,7 +1010,7 @@ export default function Dashboard() {
                 onClick={() => setShowModal(false)}
                 disabled={loadingSave}
               >
-                ✕
+                x
               </button>
             </div>
 
